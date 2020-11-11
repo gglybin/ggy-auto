@@ -1,0 +1,67 @@
+---
+# tasks file for db_storage_setup
+
+- name: Install lvm2 package
+  yum:
+    name: lvm2
+    state: present
+
+- name: Create partition on {{ device_name }} device
+  parted:
+    device: "{{ device_name }}"
+    number: 1
+    label: gpt
+    flags: [ lvm ]
+    state: present
+
+- name: Creating LVM Physical Volume and Volume Group
+  lvg:
+    vg: "{{ lvm_volume_group_name }}"
+    pvs: "{{ device_name }}1"
+
+- name: Creating Logical Volumes
+  lvol:
+    lv: "{{ item.name }}"
+    vg: "{{ lvm_volume_group_name }}"
+    size: "{{ item.size }}"
+  with_items:
+    - { name: "{{ lvm_oracle_home_label }}", size: "{{ lvm_oracle_home_size }}" }
+    - { name: "{{ lvm_data_files_label }}",  size: "{{ lvm_data_files_size }}" }
+    - { name: "{{ lvm_redo_files_label }}",  size: "{{ lvm_redo_files_size }}" }
+    - { name: "{{ lvm_arc_files_label }}",   size: "{{ lvm_arc_files_size }}" }
+    - { name: "{{ lvm_diag_files_label }}",  size: "{{ lvm_diag_files_size }}" }
+
+- name: Create file system
+  filesystem:
+    fstype: "{{ item.fstype }}"
+    dev: "{{ item.device }}"
+  with_items:
+    - { fstype: "{{ lvm_oracle_home_fs_type }}", device: "/dev/{{ lvm_volume_group_name }}/{{ lvm_oracle_home_label }}" }
+    - { fstype: "{{ lvm_data_files_fs_type }}",  device: "/dev/{{ lvm_volume_group_name }}/{{ lvm_data_files_label }}" }
+    - { fstype: "{{ lvm_redo_files_fs_type }}",  device: "/dev/{{ lvm_volume_group_name }}/{{ lvm_redo_files_label }}" }
+    - { fstype: "{{ lvm_arc_files_fs_type }}",   device: "/dev/{{ lvm_volume_group_name }}/{{ lvm_arc_files_label }}" }
+    - { fstype: "{{ lvm_diag_files_fs_type }}",  device: "/dev/{{ lvm_volume_group_name }}/{{ lvm_diag_files_label }}" }
+
+- name: Create mount point directories
+  file:
+    path: "{{ item }}"
+    state: directory
+  with_items:
+    - "{{ oracle_home_top }}"
+    - "{{ data_top }}"
+    - "{{ redo_top }}"
+    - "{{ arc_top }}"
+    - "{{ diag_top }}"
+
+- name: Mount and update /etc/fstab
+  mount:
+    path: "{{ item.point }}"
+    src: "{{ item.device }}"
+    fstype: "{{ item.fstype }}"
+    state: mounted
+  with_items:
+    - { point: "{{ oracle_home_top }}", device: "/dev/{{ lvm_volume_group_name }}/{{ lvm_oracle_home_label }}", fstype: "{{ lvm_oracle_home_fs_type }}" }
+    - { point: "{{ data_top }}",        device: "/dev/{{ lvm_volume_group_name }}/{{ lvm_data_files_label }}",  fstype: "{{ lvm_data_files_fs_type }}" }
+    - { point: "{{ redo_top }}",        device: "/dev/{{ lvm_volume_group_name }}/{{ lvm_redo_files_label }}",  fstype: "{{ lvm_redo_files_fs_type }}" }
+    - { point: "{{ arc_top }}",         device: "/dev/{{ lvm_volume_group_name }}/{{ lvm_arc_files_label }}",   fstype: "{{ lvm_arc_files_fs_type }}" }
+    - { point: "{{ diag_top }}",        device: "/dev/{{ lvm_volume_group_name }}/{{ lvm_diag_files_label }}",  fstype: "{{ lvm_diag_files_fs_type }}" }

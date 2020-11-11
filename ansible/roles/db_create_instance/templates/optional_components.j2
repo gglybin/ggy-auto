@@ -1,0 +1,52 @@
+--
+-- Oracle Text (CONTEXT)
+--
+
+@?/ctx/admin/catctx.sql change_on_install SYSAUX TEMP LOCK
+@?/ctx/admin/defaults/dr0defin.sql "AMERICAN"
+@?/rdbms/admin/dbmsxdbt.sql
+
+--
+-- Oracle Multimedia (ORDIM)
+--
+
+@?/ord/admin/ordinst.sql SYSAUX SYSAUX
+@?/ord/im/admin/iminst.sql
+
+--
+-- Oracle OLAP (APS/XOQ)
+--
+
+@?/olap/admin/olap.sql SYSAUX TEMP
+
+--
+-- Spatial (SDO)
+--
+
+@?/md/admin/mdinst.sql
+
+--
+-- Oracle Label Security
+--
+
+@?/rdbms/admin/catols.sql
+
+--
+-- Oracle Database Vault
+--
+
+@?/rdbms/admin/catmac.sql SYSAUX TEMP {{ ora_sys_pwd }}
+
+--
+-- Oracle Workspace Manager
+--
+
+@?/rdbms/admin/owminst.plb
+
+--
+-- Recompile Invalid Database Objects
+--
+
+@?/rdbms/admin/utlrp.sql
+
+exit;

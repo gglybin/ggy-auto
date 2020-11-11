@@ -1,0 +1,8 @@
+{{ ora_db_sid }}, {{ listener_name }} =
+   (DESCRIPTION =
+        (ADDRESS = (PROTOCOL = TCP)(HOST = {{ ansible_fqdn }})(PORT = {{ listener_port }}))
+        (CONNECT_DATA =
+           (SERVER = DEDICATED)
+           (SID = {{ ora_db_sid }})
+        )
+   )

@@ -1,0 +1,31 @@
+--
+-- Oracle Database Catalog Views
+--
+
+@?/rdbms/admin/catalog.sql
+
+--
+-- Oracle Database Packages and Types
+--
+
+@?/rdbms/admin/catproc.sql
+
+--
+-- SQL*Plus PRODUCT_USER_PROFILE tables
+--
+
+@?/sqlplus/admin/pupbld.sql
+
+--
+-- SQLPLUS HELP
+--
+
+@?/sqlplus/admin/help/helpbld.sql "{{ oracle_home }}/sqlplus/admin/help" "helpus.sql"
+
+--
+-- Recompile Invalid Database Objects
+--
+
+@?/rdbms/admin/utlrp.sql
+
+exit;

@@ -1,0 +1,30 @@
+---
+# vars file for db_storage_setup
+
+device_name                : /dev/sdb
+lvm_volume_group_name      : oravg
+
+lvm_oracle_home_label      : home
+lvm_oracle_home_size       : 40g
+lvm_oracle_home_fs_type    : ext4
+oracle_home_top            : /oracle
+
+lvm_data_files_label       : data
+lvm_data_files_size        : 50g
+lvm_data_files_fs_type     : ext4
+data_top                   : /oradata
+
+lvm_diag_files_label       : diag
+lvm_diag_files_size        : 10g
+lvm_diag_files_fs_type     : ext4
+diag_top                   : /diag
+
+lvm_redo_files_label       : redo
+lvm_redo_files_size        : 10g
+lvm_redo_files_fs_type     : xfs
+redo_top                   : /redo
+
+lvm_arc_files_label        : arc
+lvm_arc_files_size         : 10g
+lvm_arc_files_fs_type      : xfs
+arc_top                    : /arclogs

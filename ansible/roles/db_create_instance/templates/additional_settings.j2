@@ -1,0 +1,11 @@
+audit create session;
+
+exec dbms_workload_repository.modify_baseline_window_size(window_size => 7);
+
+exec dbms_workload_repository.modify_snapshot_settings(interval => 15, retention => 10080);
+
+exec dbms_auto_task_admin.disable(client_name=>'sql tuning advisor', operation=>NULL, window_name=>NULL);
+
+exec dbms_auto_task_admin.disable(client_name=>'auto space advisor', operation=>NULL, window_name=>NULL);
+
+exit;

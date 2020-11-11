@@ -1,0 +1,72 @@
+---
+# Control flags
+
+is_storage_setup_required               : true
+is_server_setup_required                : true
+is_database_software_setup_required     : true
+is_database_creation_required           : true
+is_database_crontab_scripts_required    : true
+is_cloud_control_agent_setup_required   : true
+
+# Storage
+
+device_name                : /dev/sdb
+lvm_volume_group_name      : oravg
+
+lvm_oracle_home_label      : home
+lvm_oracle_home_size       : 40g
+lvm_oracle_home_fs_type    : ext4
+oracle_home_top            : /oracle
+
+lvm_data_files_label       : data
+lvm_data_files_size        : 50g
+lvm_data_files_fs_type     : ext4
+data_top                   : /oradata
+
+lvm_diag_files_label       : diag
+lvm_diag_files_size        : 10g
+lvm_diag_files_fs_type     : ext4
+diag_top                   : /diag
+
+lvm_redo_files_label       : redo
+lvm_redo_files_size        : 10g
+lvm_redo_files_fs_type     : xfs
+redo_top                   : /redo
+
+lvm_arc_files_label        : arc
+lvm_arc_files_size         : 10g
+lvm_arc_files_fs_type      : xfs
+arc_top                    : /arclogs
+
+# Oracle Database
+
+os_db_owner                : oracle
+os_db_owner_pwd            : "welcome123"
+oracle_home_zip            : LINUX.X64_193000_db_home.zip
+oracle_inventory           : "{{ diag_top }}/oraInventory"
+oracle_base                : "{{ diag_top }}/19.0.0"
+oracle_home                : "{{ oracle_home_top }}/app/oracle/product/19.0.0/dbhome_1"
+listener_name              : LISTENER_TEST
+listener_port              : 1521
+ora_db_name                : ORCL
+ora_db_sid                 : TEST
+ora_sys_pwd                : "sys123"
+ora_char_set               : AL32UTF8
+ora_national_char_set      : AL16UTF16
+
+# Oracle RMAN backup
+
+rman_bkp_location          : "/oracle/backup"    # Separate folder will be created under this one with name = ORACLE_SID
+
+# Oracle Cloud Control Agent
+
+agent_top                  : "{{ oracle_home_top }}/app/middleware/agent"
+agent_port                 : 3872
+oms_host                   : 192.168.159.200
+oms_em_url                 : "https://192.168.159.200:7803/em"
+oms_upload_port            : 4903
+oms_adm_usr                : sysman
+oms_adm_usr_pwd            : "sysman_password"
+oms_agent_reg_pwd          : "agent_registration_password"          # By default it's the same as SYSMAN password
+oms_version                : 13.3.0.0.0
+oms_platform               : "Linux x86-64"

@@ -1,0 +1,8 @@
+---
+# vars file for db_crontab_scripts
+
+os_db_owner                : oracle
+ora_db_sid                 : TEST
+oracle_base                : "/diag/19.0.0"
+oracle_home                : "/oracle/app/oracle/product/19.0.0/dbhome_1"
+rman_bkp_location          : "/oracle/backup"    # Separate folder will be created under this one with name = ORACLE_SID

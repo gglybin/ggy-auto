@@ -1,0 +1,15 @@
+---
+# vars file for db_create_instance
+
+os_db_owner                : oracle
+ora_db_name                : ORCL
+ora_db_sid                 : TEST
+ora_sys_pwd                : sys123
+ora_char_set               : AL32UTF8
+ora_national_char_set      : AL16UTF16
+listener_name              : LISTENER_TEST
+oracle_base                : "/diag/19.0.0"
+oracle_home                : "/oracle/app/oracle/product/19.0.0/dbhome_1"
+data_top                   : "/oradata"
+redo_top                   : "/redo"
+arc_top                    : "/arclogs"

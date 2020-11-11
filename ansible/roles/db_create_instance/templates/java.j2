@@ -1,0 +1,23 @@
+--
+-- JAVAVM / CATJAVA / XML
+--
+-- JServer JAVA Virtual Machine
+--
+-- Oracle Database Java Packages
+--
+-- Oracle XDK
+--
+
+@?/javavm/install/initjvm.sql
+@?/xdk/admin/initxml.sql
+@?/xdk/admin/xmlja.sql
+@?/rdbms/admin/catjava.sql
+@?/rdbms/admin/catxdbj.sql
+
+--
+-- Recompile Invalid Database Objects
+--
+
+@?/rdbms/admin/utlrp.sql
+
+exit;

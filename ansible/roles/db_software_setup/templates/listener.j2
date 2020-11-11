@@ -1,0 +1,23 @@
+{{ listener_name }} =
+  (DESCRIPTION =
+    (ADDRESS_LIST =
+      (ADDRESS = (PROTOCOL = IPC)(KEY = EXTPROCLISTENER))
+      (ADDRESS = (PROTOCOL = TCP)(HOST = {{ ansible_fqdn }})(PORT = {{ listener_port }}))
+    )
+  )
+
+SID_LIST_{{ listener_name }} =
+  (SID_LIST =
+    (SID_DESC =
+      (GLOBAL_DBNAME = {{ ora_db_name }})
+      (ORACLE_HOME = {{ oracle_home }})
+      (SID_NAME = {{ ora_db_sid }})
+    )
+  )
+
+
+LOGGING_{{ listener_name }}=OFF
+CONNECTION_RATE_{{ listener_name }}=10
+RATE_LIMIT_{{ listener_name }}=YES
+INBOUND_CONNECT_TIMEOUT_{{ listener_name }}=120
+VALID_NODE_CHECKING_REGISTRATION_{{ listener_name }}=ON

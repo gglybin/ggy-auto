@@ -1,0 +1,173 @@
+---
+# tasks file for db_server_setup
+
+- name: Copy Oracle Database Pre-Install Packages
+  copy:
+    src="{{ item }}"
+    dest="/tmp"
+    mode=0775
+  with_items:
+    - "compat-libstdc++-33-3.2.3-72.el7.x86_64.rpm"
+    - "compat-libcap1-1.10-7.el7.x86_64.rpm"
+    - "oracle-database-preinstall-19c.el7.x86_64.rpm"
+
+- name: Copy rlwrap package for RedHat family Release 7
+  copy:
+    src="{{ item }}"
+    dest="/tmp"
+    mode=0775
+  with_items:
+    - "rlwrap-0.42-1.el7.x86_64.rpm"
+  when: ansible_facts['distribution_major_version'] | int == 7
+
+- name: Copy rlwrap package for RedHat family Release 8
+  copy:
+    src="{{ item }}"
+    dest="/tmp"
+    mode=0775
+  with_items:
+    - "rlwrap-0.43-5.el8.x86_64.rpm"
+  when: ansible_facts['distribution_major_version'] | int == 8
+
+- name: Install Oracle Database Pre-Install Packages
+  command: "yum -y localinstall {{ item }}"
+  with_items:
+    - "/tmp/compat-libcap1-1.10-7.el7.x86_64.rpm"
+    - "/tmp/compat-libstdc++-33-3.2.3-72.el7.x86_64.rpm"
+    - "/tmp/oracle-database-preinstall-19c.el7.x86_64.rpm"
+
+- name: Install rlwrap package for RedHat falimy Release 7
+  command: "yum -y localinstall {{ item }}"
+  with_items:
+    - "/tmp/rlwrap-0.42-1.el7.x86_64.rpm"
+  when: ansible_facts['distribution_major_version'] | int == 7
+
+- name: Install rlwrap package for RedHat family Release 8
+  command: "yum -y localinstall {{ item }}"
+  with_items:
+    - "/tmp/rlwrap-0.43-5.el8.x86_64.rpm"
+  when: ansible_facts['distribution_major_version'] | int == 8
+
+- name: Install additional packages
+  yum:
+    name: "{{ pkg_name }}"
+    state: present
+  vars:
+    pkg_name:
+    - unixODBC
+    - dos2unix
+    - telnet
+    - java-1.8.0-openjdk
+    - java-1.8.0-openjdk-devel
+
+- name: Install libnsl package to avoid runInstaller issue on Linux 8 Platforms
+  yum:
+    name: "{{ pkg_name }}"
+    state: present
+  vars:
+    pkg_name:
+    - libnsl
+  when: ansible_facts['distribution_major_version'] | int == 8
+
+- name: Update /etc/hosts
+  lineinfile:
+    path: "/etc/hosts"
+    line: "{{ ansible_default_ipv4.address }}     {{ ansible_fqdn }}     {{ ansible_hostname }}"
+    state: present
+    backup: yes
+
+- name: Backup current selinux config file
+  copy:
+    src: /etc/selinux/config
+    dest: /etc/selinux/config_ansible_backup
+
+- name: Set SELINUX to permissive / targeted
+  selinux:
+    policy: targeted
+    state: permissive
+
+- name: Stop and disable firewalld service
+  service:
+    name: firewalld
+    state: stopped
+    enabled: False
+
+- name: Create "oinstall" OS group
+  group:
+    name: oinstall
+    gid: 54321
+    state: present
+
+- name: Create "dba" OS group
+  group:
+    name: dba
+    gid: 54322
+    state: present
+
+- name: Create "oper" OS group
+  group:
+    name: oper
+    gid: 54323
+    state: present
+
+- name: Create "{{ os_db_owner }}" OS user
+  user:
+    name: "{{ os_db_owner }}"
+    password: "{{ os_db_owner_pwd | password_hash('sha512', 'mysecretsalt') }}"
+    uid: 54321
+    group: oinstall
+    groups: dba, oper
+    expires: -1
+
+- name: Create additional directories and set permissions
+  file:
+    path: "{{ item }}"
+    state: directory
+    recurse: yes
+    owner: "{{ os_db_owner }}"
+    group: oinstall
+    mode: '0775'
+  with_items:
+    - "{{ oracle_base }}"
+    - "{{ oracle_home }}"
+    - "{{ oracle_inventory }}"
+    - "{{ data_top }}"
+    - "{{ redo_top }}"
+    - "{{ arc_top }}"
+    - "{{ diag_top }}"
+    - "{{ oracle_home_top }}"
+    - "/home/{{ os_db_owner }}/.ansible/tmp"
+
+- name: Backup current sysctl.conf file
+  copy:
+    src: /etc/sysctl.conf
+    dest: /etc/sysctl.conf_ansible_backup
+
+- name: Linux Tuning
+  sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+  with_items:
+    - { name: vm.nr_hugepages, value: "{{ ((((ansible_memtotal_mb * 60) / 100) / 2) + 10) | round | int | abs }}" }
+    - { name: vm.swappiness, value: 1}
+    - { name: vm.dirty_background_ratio, value: 1}
+    - { name: vm.dirty_ratio, value: 20}
+    - { name: vm.dirty_expire_centisecs, value: 500}
+    - { name: vm.dirty_writeback_centisecs, value: 100}
+    - { name: kernel.randomize_va_space, value: 0}
+    - { name: net.core.netdev_max_backlog, value: 10000}
+    - { name: net.core.somaxconn, value: 65535}
+    - { name: net.ipv4.tcp_congestion_control, value: htcp}
+    - { name: net.ipv4.tcp_rmem, value: 4096 87380 16777216}
+    - { name: net.ipv4.tcp_wmem, value: 4096 65536 16777216}
+    - { name: net.ipv4.tcp_max_tw_buckets, value: 720000}
+    - { name: net.ipv4.tcp_fin_timeout, value: 30}
+    - { name: net.core.netdev_budget, value: 900}
+    - { name: net.ipv6.conf.all.disable_ipv6, value: 1}
+    - { name: vm.overcommit_ratio, value: 100}
+    - { name: vm.max_map_count, value: 2000000}
+    - { name: net.ipv6.conf.lo.disable_ipv6, value: 1}
+    - { name: kernel.pid_max, value: 4194303}
+    - { name: kernel.core_uses_pid, value: 1}
+    - { name: vm.overcommit_memory, value: 1}
+    - { name: vm.zone_reclaim_mode, value: 0}

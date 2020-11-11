@@ -1,0 +1,33 @@
+---
+- name:  Restart Cloud Control Agent
+  hosts: db_ora_all
+  become: yes
+  become_user: oracle
+  vars:
+    agent_emctl: "/oracle/app/middleware/agent/agent_13.3.0.0.0/bin/emctl"
+
+  tasks:
+  - name: Check emctl existence
+    command: "{{ agent_emctl }} --help"
+    register: emctl_check
+    failed_when: '"Agent Operations Usage" not in emctl_check.stdout'
+
+  - name: Check Agent status before restart
+    command: "{{ agent_emctl }} status agent"
+    register: agent_status
+    failed_when: agent_status.rc not in [0,1]
+
+  - name: Stop Agent
+    command: "{{ agent_emctl }} stop agent"
+    when: '"Agent is Running and Ready" in agent_status.stdout'
+
+  - name: Start Agent
+    command: "{{ agent_emctl }} start agent"
+
+  - name: Check Agent status after restart
+    command: "{{ agent_emctl }} status agent"
+    register: agent_status
+    failed_when: agent_status.rc > 1
+
+  - debug:
+      var: agent_status.stdout_lines

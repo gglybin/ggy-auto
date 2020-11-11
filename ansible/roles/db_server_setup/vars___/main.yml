@@ -1,0 +1,14 @@
+---
+# vars file for db_server_setup
+
+data_top                   : /oradata
+redo_top                   : /redo
+arc_top                    : /arclogs
+diag_top                   : /diag
+oracle_home_top            : /oracle
+
+os_db_owner                : oracle
+os_db_owner_pwd            : welcome123
+oracle_inventory           : "{{ diag_top }}/oraInventory"
+oracle_base                : "{{ diag_top }}/19.0.0"
+oracle_home                : "{{ oracle_home_top }}/app/oracle/product/19.0.0/dbhome_1"

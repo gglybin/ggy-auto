@@ -1,0 +1,26 @@
+CREATE DATABASE {{ ora_db_name }}
+USER SYS IDENTIFIED BY "{{ ora_sys_pwd }}" USER SYSTEM IDENTIFIED BY "{{ ora_sys_pwd }}"
+LOGFILE
+  GROUP 1 ('{{ redo_top }}/{{ ora_db_sid }}/redo01a.log','{{ redo_top }}/{{ ora_db_sid }}/redo01b.log') SIZE 512M BLOCKSIZE 512,
+  GROUP 2 ('{{ redo_top }}/{{ ora_db_sid }}/redo02a.log','{{ redo_top }}/{{ ora_db_sid }}/redo02b.log') SIZE 512M BLOCKSIZE 512,
+  GROUP 3 ('{{ redo_top }}/{{ ora_db_sid }}/redo03a.log','{{ redo_top }}/{{ ora_db_sid }}/redo03b.log') SIZE 512M BLOCKSIZE 512
+MAXLOGFILES 32
+MAXLOGMEMBERS 3
+MAXLOGHISTORY 1460
+MAXDATAFILES 2048
+MAXINSTANCES 8
+ARCHIVELOG
+CHARACTER SET {{ ora_char_set }}
+NATIONAL CHARACTER SET {{ ora_national_char_set }}
+EXTENT MANAGEMENT LOCAL
+DATAFILE
+  '{{ data_top }}/{{ ora_db_sid }}/system01.dbf' SIZE 1024M REUSE AUTOEXTEND ON NEXT 65536K MAXSIZE 32767M
+SYSAUX DATAFILE
+  '{{ data_top }}/{{ ora_db_sid }}/sysaux01.dbf' SIZE 1024M REUSE AUTOEXTEND ON NEXT 65536K MAXSIZE 32767M
+DEFAULT TABLESPACE USERS DATAFILE
+  '{{ data_top }}/{{ ora_db_sid }}/users01.dbf' SIZE 1024M REUSE AUTOEXTEND ON NEXT 65536K MAXSIZE 32767M
+UNDO TABLESPACE UNDOTBS1 DATAFILE 
+  '{{ data_top }}/{{ ora_db_sid }}/undotbs01.dbf' SIZE 2048M REUSE
+DEFAULT TEMPORARY TABLESPACE TEMP TEMPFILE 
+  '{{ data_top }}/{{ ora_db_sid }}/temp01.dbf' SIZE 2048M REUSE;
+exit;
