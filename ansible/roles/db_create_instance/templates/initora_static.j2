@@ -11,7 +11,7 @@
 *.core_dump_dest='{{ oracle_base }}/diag/rdbms/{{ ora_db_name|lower }}/{{ ora_db_sid }}/cdump'
 *.diagnostic_dest='{{ oracle_base }}'
 *.dispatchers=''
-*.event='28401 trace name context forever, level 1','12633340 trace name context forever, level 5','10949 trace name context forever'
+#*.event='28401 trace name context forever, level 1','12633340 trace name context forever, level 5','10949 trace name context forever'
 *.job_queue_processes={{ (ansible_processor_vcpus / 2) | round | int | abs }}
 *.local_listener='{{ listener_name }}'
 *.log_archive_dest_1='LOCATION={{ arc_top }}/{{ ora_db_sid }}'
