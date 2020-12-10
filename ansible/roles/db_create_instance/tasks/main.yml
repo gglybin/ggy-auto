@@ -204,7 +204,6 @@
     - "SET SQLPROMPT \"_USER'@'_CONNECT_IDENTIFIER > \";"
     - "SET LINES 400;"
     - "SET PAGES 1000;"
-    - "SET TIME ON;"
 
 - name: Create symbolic link to database alert.log file
   file:
