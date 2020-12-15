@@ -1,5 +1,7 @@
 ---
+#----------------------
 # Control flags
+#----------------------
 
 is_storage_setup_required               : true
 is_server_setup_required                : true
@@ -8,37 +10,49 @@ is_database_creation_required           : true
 is_database_crontab_scripts_required    : true
 is_cloud_control_agent_setup_required   : true
 
+#----------------------
 # Storage
+#----------------------
 
 device_name                : /dev/sdb
+partition_number           : 1
 lvm_volume_group_name      : oravg
 
-lvm_oracle_home_label      : home
-lvm_oracle_home_size       : 40g
-lvm_oracle_home_fs_type    : ext4
+##
+## Example 1: split style.
+##
+
+lvm_volumes_info:
+  orahome                  : [/oracle,   40g,  ext4]
+  diag                     : [/diag,     10g,  ext4]
+  data                     : [/oradata,  50g,  ext4]
+  redo                     : [/redo,     10g,   xfs]
+  arc                      : [/arclogs,  30g,   xfs]
+
 oracle_home_top            : /oracle
-
-lvm_data_files_label       : data
-lvm_data_files_size        : 50g
-lvm_data_files_fs_type     : ext4
-data_top                   : /oradata
-
-lvm_diag_files_label       : diag
-lvm_diag_files_size        : 10g
-lvm_diag_files_fs_type     : ext4
 diag_top                   : /diag
-
-lvm_redo_files_label       : redo
-lvm_redo_files_size        : 10g
-lvm_redo_files_fs_type     : xfs
+data_top                   : /oradata
 redo_top                   : /redo
-
-lvm_arc_files_label        : arc
-lvm_arc_files_size         : 10g
-lvm_arc_files_fs_type      : xfs
 arc_top                    : /arclogs
 
+## ##
+## ## Example 2: default style.
+## ##
+##
+## lvm_volumes_info:
+##   orahome                  : [/u01, 20g, ext4]
+##   data                     : [/data, 30g, ext4]
+##
+## oracle_home_top            : /u01
+## diag_top                   : /u01
+## data_top                   : /data
+## redo_top                   : /data
+## arc_top                    : /data
+##
+
+#----------------------
 # Oracle Database
+#----------------------
 
 os_db_owner                : oracle
 os_db_owner_pwd            : "welcome123"
@@ -54,11 +68,15 @@ ora_sys_pwd                : "sys123"
 ora_char_set               : AL32UTF8
 ora_national_char_set      : AL16UTF16
 
+#----------------------
 # Oracle RMAN backup
+#----------------------
 
 rman_bkp_location          : "/oracle/backup"    # Separate folder will be created under this one with name = ORACLE_SID
 
-# Oracle Cloud Control Agent
+#----------------------
+# Cloud Control Agent
+#----------------------
 
 agent_top                  : "{{ oracle_home_top }}/app/middleware/agent"
 agent_port                 : 3872
