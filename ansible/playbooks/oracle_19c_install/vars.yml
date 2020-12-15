@@ -36,18 +36,17 @@ redo_top                   : /redo
 arc_top                    : /arclogs
 
 ## ##
-## ## Example 2: default style.
+## ## Example 2: all-in-one style.
 ## ##
 ##
 ## lvm_volumes_info:
-##   orahome                  : [/u01, 20g, ext4]
-##   data                     : [/data, 30g, ext4]
+##   orahome                  : [/u01, 100g, ext4]
 ##
 ## oracle_home_top            : /u01
 ## diag_top                   : /u01
-## data_top                   : /data
-## redo_top                   : /data/redo
-## arc_top                    : /data/arclogs
+## data_top                   : /u01/data
+## redo_top                   : /u01/redo
+## arc_top                    : /u01/arclogs
 ##
 
 #----------------------
