@@ -2,29 +2,37 @@
 # vars file for db_storage_setup
 
 device_name                : /dev/sdb
+partition_number           : 1
 lvm_volume_group_name      : oravg
 
-lvm_oracle_home_label      : home
-lvm_oracle_home_size       : 40g
-lvm_oracle_home_fs_type    : ext4
+##
+## Example 1: split style.
+##
+
+lvm_volumes_info:
+  orahome                  : [/oracle,   40g,  ext4]
+  diag                     : [/diag,     10g,  ext4]
+  data                     : [/oradata,  50g,  ext4]
+  redo                     : [/redo,     10g,   xfs]
+  arc                      : [/arclogs,  30g,   xfs]
+
 oracle_home_top            : /oracle
-
-lvm_data_files_label       : data
-lvm_data_files_size        : 50g
-lvm_data_files_fs_type     : ext4
-data_top                   : /oradata
-
-lvm_diag_files_label       : diag
-lvm_diag_files_size        : 10g
-lvm_diag_files_fs_type     : ext4
 diag_top                   : /diag
-
-lvm_redo_files_label       : redo
-lvm_redo_files_size        : 10g
-lvm_redo_files_fs_type     : xfs
+data_top                   : /oradata
 redo_top                   : /redo
-
-lvm_arc_files_label        : arc
-lvm_arc_files_size         : 10g
-lvm_arc_files_fs_type      : xfs
 arc_top                    : /arclogs
+
+## ##
+## ## Example 2: default style.
+## ##
+##
+## lvm_volumes_info:
+##   orahome                  : [/u01, 20g, ext4]
+##   data                     : [/data, 30g, ext4]
+##
+## oracle_home_top            : /u01
+## diag_top                   : /u01
+## data_top                   : /data
+## redo_top                   : /data
+## arc_top                    : /data
+##
