@@ -44,7 +44,7 @@
 - name: INFO
   debug:
     msg:
-       - 'Starting database instance creation process. It will take a while ...'
+       - 'Starting database instance creation process. It will take a while ... (~ 50 min)'
 
 - name: Start database in NOMOUNT
   become: yes
