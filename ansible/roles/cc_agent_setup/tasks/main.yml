@@ -69,21 +69,21 @@
 
 - name: Run root.sh script
   shell:
-    cmd: "{{ agent_top }}/agent_{{ oms_version }}/root.sh"
+    cmd: "{{ agent_top }}/agent_{{ oms_version }}/root.sh && sleep 5"
 
 - name: Add {{ ora_db_sid }} database to OMS monitoring
   become: yes
   become_user: "{{ os_db_owner }}"
   no_log: true
   shell:
-    cmd: "{{ agent_top }}/install/emcli/emcli add_target -name=\"{{ ora_db_sid }}\" -type=\"oracle_database\" -host=\"{{ ansible_fqdn }}\" -credentials=\"UserName:SYS;password:\"{{ ora_sys_pwd }}\";Role:SYSDBA\" -properties=\"SID:{{ ora_db_sid }};Port:{{ listener_port }};OracleHome:{{ oracle_home }};MachineName:{{ ansible_fqdn }}\""
+    cmd: "sleep 10 && {{ agent_top }}/install/emcli/emcli add_target -name=\"{{ ora_db_sid }}\" -type=\"oracle_database\" -host=\"{{ ansible_fqdn }}\" -credentials=\"UserName:SYS;password:\"{{ ora_sys_pwd }}\";Role:SYSDBA\" -properties=\"SID:{{ ora_db_sid }};Port:{{ listener_port }};OracleHome:{{ oracle_home }};MachineName:{{ ansible_fqdn }}\""
 
 - name: Add {{ listener_name }} listener to OMS monitoring
   become: yes
   become_user: "{{ os_db_owner }}"
   no_log: true
   shell:
-    cmd: "{{ agent_top }}/install/emcli/emcli add_target -name=\"{{ listener_name }}_{{ ansible_fqdn }}\" -type=\"oracle_listener\" -host=\"{{ ansible_fqdn }}\" -properties=\"LsnrName:{{ listener_name }};ListenerOraDir:{{ oracle_home }}/network/admin;Port:{{ listener_port }};OracleHome:{{ oracle_home }};Machine:{{ ansible_fqdn }}\""
+    cmd: "sleep 10 && {{ agent_top }}/install/emcli/emcli add_target -name=\"{{ listener_name }}_{{ ansible_fqdn }}\" -type=\"oracle_listener\" -host=\"{{ ansible_fqdn }}\" -properties=\"LsnrName:{{ listener_name }};ListenerOraDir:{{ oracle_home }}/network/admin;Port:{{ listener_port }};OracleHome:{{ oracle_home }};Machine:{{ ansible_fqdn }}\""
 
 - name: Create environment file
   become: yes
