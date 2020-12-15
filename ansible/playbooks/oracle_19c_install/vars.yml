@@ -46,8 +46,8 @@ arc_top                    : /arclogs
 ## oracle_home_top            : /u01
 ## diag_top                   : /u01
 ## data_top                   : /data
-## redo_top                   : /data
-## arc_top                    : /data
+## redo_top                   : /data/redo
+## arc_top                    : /data/arclogs
 ##
 
 #----------------------
