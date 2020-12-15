@@ -38,6 +38,9 @@ $ cat /etc/ansible/ansible.cfg
 inventory              = /etc/ansible/hosts
 log_path               = /etc/ansible/ansible.log
 host_key_checking      = false
+
+# NOTE: "remote_tmp" should have at least 3.5-4 GB free space (actually depends on your ORACLE_HOME archive size).
+remote_tmp             = /tmp
 +++++++++++++++++++
 ```
 
