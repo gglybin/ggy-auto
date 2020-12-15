@@ -194,6 +194,39 @@
           export PATH=$ORACLE_HOME:$ORACLE_HOME/bin:$PATH &&
           sqlplus -s / as sysdba @/home/{{ os_db_owner }}/additional_settings.sql"
 
+- name: Enable Archive Mode
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  shell:
+    cmd: "{{ item }}"
+  with_items:
+    - "export ORACLE_SID={{ ora_db_sid }} &&
+       export ORACLE_HOME={{ oracle_home }} &&
+       export PATH=$ORACLE_HOME:$ORACLE_HOME/bin:$PATH &&
+       echo 'shu immediate;' | sqlplus -s / as sysdba"
+    - "export ORACLE_SID={{ ora_db_sid }} &&
+       export ORACLE_HOME={{ oracle_home }} &&
+       export PATH=$ORACLE_HOME:$ORACLE_HOME/bin:$PATH &&
+       echo 'startup mount;' | sqlplus -s / as sysdba"
+    - "export ORACLE_SID={{ ora_db_sid }} &&
+       export ORACLE_HOME={{ oracle_home }} &&
+       export PATH=$ORACLE_HOME:$ORACLE_HOME/bin:$PATH &&
+       sleep 10 &&
+       echo 'alter database archivelog;' | sqlplus -s / as sysdba"
+    - "export ORACLE_SID={{ ora_db_sid }} &&
+       export ORACLE_HOME={{ oracle_home }} &&
+       export PATH=$ORACLE_HOME:$ORACLE_HOME/bin:$PATH &&
+       echo 'alter database open;' | sqlplus -s / as sysdba"
+
+- name: Set RMAN retention policy to 7 days
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  shell:
+    cmd: "export ORACLE_SID={{ ora_db_sid }} &&
+          export ORACLE_HOME={{ oracle_home }} &&
+          export PATH=$ORACLE_HOME:$ORACLE_HOME/bin:$PATH &&
+          echo 'CONFIGURE RETENTION POLICY TO RECOVERY WINDOW OF 7 DAYS;' | rman target /"
+
 - name: Update SQL*Plus glogin.sql file
   lineinfile:
     path: "{{ oracle_home }}/sqlplus/admin/glogin.sql"
