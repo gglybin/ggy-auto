@@ -74,13 +74,17 @@ Copy roles and playbook folders to your ansible server from GitHub as it is.
 
 ### Step 5: Copy Oracle Home zip
 
-You have to copy real Oracle Home archive into `/etc/asnible/roles/db_software_setup/files` folder.
+You have to copy real Oracle Home archive into `/etc/asnible/roles/db_software_setup/files` folder or create symbolic link.
 
 Please review additional instructions in file `/etc/asnible/roles/db_software_setup/files/LINUX.X64_193000_db_home.zip`.
 
 It's not an archive, so you can open it as regular file `view /etc/asnible/roles/db_software_setup/files/LINUX.X64_193000_db_home.zip` and review details.
 
-### Step 6: Setup passwordless ssh
+### Step 6: Check free space on "remote_tmp" directory
+
+You have to check if there is enough free space in directory defined on `Step 2` in `ansible.cfg` file as `remote_tmp` to place the ORACLE_HOME archive.
+
+### Step 7: Setup passwordless ssh
 
 ##### From Ansible host:
 
@@ -98,7 +102,7 @@ $ chmod 600 ~/.ssh/authorized_keys
 $ chmod 755 ~
 ```
 
-### Step 7: Test if everything is okay
+### Step 8: Test if everything is okay
 
 ##### From Ansible host:
 
