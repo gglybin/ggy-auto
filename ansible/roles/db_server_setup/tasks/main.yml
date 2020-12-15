@@ -36,7 +36,7 @@
     - "/tmp/compat-libstdc++-33-3.2.3-72.el7.x86_64.rpm"
     - "/tmp/oracle-database-preinstall-19c.el7.x86_64.rpm"
 
-- name: Install rlwrap package for RedHat falimy Release 7
+- name: Install rlwrap package for RedHat family Release 7
   command: "yum -y localinstall {{ item }}"
   with_items:
     - "/tmp/rlwrap-0.42-1.el7.x86_64.rpm"
