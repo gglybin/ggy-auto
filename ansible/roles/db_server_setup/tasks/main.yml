@@ -119,6 +119,10 @@
     groups: dba, oper
     expires: -1
 
+- name: Explicitly disabling password expiry for "{{ os_db_owner }}" OS user
+  shell:
+    cmd: "chage -m 0 -M -1 -E -1 {{ os_db_owner }}"
+
 - name: Create additional directories and set permissions
   file:
     path: "{{ item }}"
