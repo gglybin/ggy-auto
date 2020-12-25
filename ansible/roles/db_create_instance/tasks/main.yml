@@ -239,6 +239,8 @@
     - "SET PAGES 1000;"
 
 - name: Create symbolic link to database alert.log file
+  become: yes
+  become_user: "{{ os_db_owner }}"
   file:
     src: "{{ oracle_base }}/diag/rdbms/{{ ora_db_name|lower }}/{{ ora_db_sid }}/trace/alert_{{ ora_db_sid }}.log"
     dest: "/home/{{ os_db_owner }}/alert_{{ ora_db_sid }}.log"
