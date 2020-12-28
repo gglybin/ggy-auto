@@ -7,7 +7,7 @@
 *.audit_trail='DB'
 *.compatible='12.0.0'
 *.connection_brokers='((TYPE=DEDICATED)(BROKERS=1))','((TYPE=EMON)(BROKERS=1))'
-*.control_files='{{ data_top }}/{{ ora_db_sid }}/control01.ctl','{{ redo_top }}/{{ ora_db_sid }}/control02.ctl','{{ oracle_home }}/dbs/control03.ctl',
+*.control_files='{{ data_top }}/{{ ora_db_sid }}/control01.ctl','{{ redo_top }}/{{ ora_db_sid }}/control02.ctl'
 *.core_dump_dest='{{ oracle_base }}/diag/rdbms/{{ ora_db_name|lower }}/{{ ora_db_sid }}/cdump'
 *.diagnostic_dest='{{ oracle_base }}'
 *.dispatchers=''
