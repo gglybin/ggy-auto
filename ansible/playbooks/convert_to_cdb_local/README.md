@@ -20,20 +20,20 @@ Oracle Database 12c(12.1.0.2), 19c
 
 :point_right: CDB will be created with all components, except APEX - it will not be installed. Check table below for detailed list:
 
-| COMP_ID     |               COMP_NAME            |
-|-------------|:----------------------------------:|
-| RAC         | Oracle Real Application Clusters   |
-| CATALOG     | Oracle Database Catalog Views      |
-| CATPROC     | Oracle Database Packages and Types |
-| XDB         | Oracle XML Database                |
-| OWM         | Oracle Workspace Manager           |
-| JAVAVM      | JServer JAVA Virtual Machine       |
-| XML         | Oracle XDK                         |
-| APS         | OLAP Analytic Workspace            |
-| ORDIM       | Oracle Multimedia                  |
-| CATJAVA     | Oracle Database Java Packages      |
-| CONTEXT     | Oracle Text                        |
-| SDO         | Spatial                            |
-| XOQ         | Oracle OLAP API                    |
-| DV          | Oracle Database Vault              |
-| OLS         | Oracle Label Security              |
+| COMP_ID     |               COMP_NAME            |                 STATUS              |
+|-------------|------------------------------------|-------------------------------------|
+| RAC         | Oracle Real Application Clusters   |  OPTION OFF                         |
+| CATALOG     | Oracle Database Catalog Views      |  VALID                              |
+| CATPROC     | Oracle Database Packages and Types |  VALID                              |
+| XDB         | Oracle XML Database                |  VALID                              |
+| OWM         | Oracle Workspace Manager           |  VALID                              |
+| JAVAVM      | JServer JAVA Virtual Machine       |  VALID                              |
+| XML         | Oracle XDK                         |  VALID                              |
+| APS         | OLAP Analytic Workspace            |  VALID                              |
+| ORDIM       | Oracle Multimedia                  |  VALID                              |
+| CATJAVA     | Oracle Database Java Packages      |  VALID                              |
+| CONTEXT     | Oracle Text                        |  VALID                              |
+| SDO         | Spatial                            |  VALID                              |
+| XOQ         | Oracle OLAP API                    |  VALID                              |
+| DV          | Oracle Database Vault              |  VALID                              |
+| OLS         | Oracle Label Security              |  VALID                              |
