@@ -16,6 +16,8 @@ Oracle Database 12c (12.1.0.2), 19c - Standalone.
 
 :point_right: Downtime is required for your current Non-CDB database. It will be down during all time of CDB creation process.
 
+:point_right: Your Non-CDB database will be stopped. Then CDB instance will be created. After that PDB database will be created using xml file created from your Non-CDB database and plugged into CDB. All actions perform locally on same server.
+
 :point_right: Ensure you have enough free disk space for CDB and PDB databases.
 
 :point_right: CDB will be created with all components, except APEX - it will not be installed. Check table below for detailed list:
