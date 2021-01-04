@@ -1,0 +1,23 @@
+#!/bin/bash
+
+export ORACLE_SID={{ cdb_oracle_sid }}
+export ORACLE_HOME={{ oracle_home }}
+export PATH=$ORACLE_HOME:$ORACLE_HOME/bin:$PATH
+
+result=$("${ORACLE_HOME}"/bin/sqlplus -s / as sysdba <<EOF
+SET FEEDBACK OFF;
+SET SERVEROUTPUT ON;
+DECLARE
+compatible CONSTANT VARCHAR2(3) := CASE DBMS_PDB.CHECK_PLUG_COMPATIBILITY(pdb_descr_file => '/home/{{ os_db_owner }}/{{ oracle_sid }}_desc.xml')
+WHEN TRUE THEN 'YES'
+ELSE 'NO'
+END;
+BEGIN
+DBMS_OUTPUT.PUT_LINE(compatible);
+END;
+/
+exit;
+EOF
+)
+
+echo ${result}

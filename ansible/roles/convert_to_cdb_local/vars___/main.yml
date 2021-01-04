@@ -1,0 +1,35 @@
+--
+# vars file for convert_to_cdb_local
+
+db_acceptable_versions     : ["12","19"]
+
+#-------------------------
+# Common:
+#-------------------------
+
+os_db_owner                : oracle
+oracle_base                : "/u01/12.1.0.2"
+oracle_home                : "/u01/app/oracle/product/12.1.0.2/dbhome_1"
+
+#-------------------------
+# Non-CDB parameters:
+#-------------------------
+
+oracle_sid                 : ORCL
+data_top                   : "/u01/data/ORCL"
+
+#-------------------------
+# CDB parameters:
+#-------------------------
+
+cdb_data_top               : "/u01/data"             #
+cdb_redo_top               : "/u01/redo"             # Separate folder will be created under this one with name = CDB ORACLE_SID
+cdb_arc_top                : "/u01/arclogs"          #
+cdb_db_name                : DEV
+cdb_oracle_sid             : DEVCDB
+pdb_name                   : ORCLPDB
+cdb_sys_pwd                : "SysP@ss!23"
+cdb_undo_tbs_name          : UNDOTBS1
+cdb_temp_tbs_name          : TEMP
+cdb_char_set               : AL32UTF8
+cdb_national_char_set      : AL16UTF16

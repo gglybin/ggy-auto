@@ -1,0 +1,29 @@
+CREATE DATABASE {{ cdb_db_name }}
+USER SYS IDENTIFIED BY "{{ cdb_sys_pwd }}" USER SYSTEM IDENTIFIED BY "{{ cdb_sys_pwd }}"
+LOGFILE
+  GROUP 1 ('{{ cdb_redo_top }}/{{ cdb_oracle_sid }}/redo01a.log','{{ cdb_redo_top }}/{{ cdb_oracle_sid }}/redo01b.log') SIZE 512M BLOCKSIZE 512,
+  GROUP 2 ('{{ cdb_redo_top }}/{{ cdb_oracle_sid }}/redo02a.log','{{ cdb_redo_top }}/{{ cdb_oracle_sid }}/redo02b.log') SIZE 512M BLOCKSIZE 512,
+  GROUP 3 ('{{ cdb_redo_top }}/{{ cdb_oracle_sid }}/redo03a.log','{{ cdb_redo_top }}/{{ cdb_oracle_sid }}/redo03b.log') SIZE 512M BLOCKSIZE 512
+MAXLOGFILES 32
+MAXLOGMEMBERS 3
+MAXLOGHISTORY 1460
+MAXDATAFILES 2048
+MAXINSTANCES 8
+NOARCHIVELOG
+CHARACTER SET {{ cdb_char_set }}
+NATIONAL CHARACTER SET {{ cdb_national_char_set }}
+EXTENT MANAGEMENT LOCAL
+DATAFILE
+  '{{ cdb_data_top }}/{{ cdb_oracle_sid }}/system01.dbf' SIZE 1024M REUSE AUTOEXTEND ON NEXT 65536K MAXSIZE 32767M
+SYSAUX DATAFILE
+  '{{ cdb_data_top }}/{{ cdb_oracle_sid }}/sysaux01.dbf' SIZE 1024M REUSE AUTOEXTEND ON NEXT 65536K MAXSIZE 32767M
+UNDO TABLESPACE {{ cdb_undo_tbs_name }} DATAFILE
+  '{{ cdb_data_top }}/{{ cdb_oracle_sid }}/undotbs01.dbf' SIZE 2048M REUSE
+DEFAULT TEMPORARY TABLESPACE {{ cdb_temp_tbs_name }} TEMPFILE
+  '{{ cdb_data_top }}/{{ cdb_oracle_sid }}/temp01.dbf' SIZE 2048M REUSE
+ENABLE PLUGGABLE DATABASE
+SEED file_name_convert=('{{ cdb_data_top }}/{{ cdb_oracle_sid }}/system01.dbf'  ,  '{{ cdb_data_top }}/{{ cdb_oracle_sid }}/PDBSEED/system01.dbf',
+                        '{{ cdb_data_top }}/{{ cdb_oracle_sid }}/sysaux01.dbf'  ,  '{{ cdb_data_top }}/{{ cdb_oracle_sid }}/PDBSEED/sysaux01.dbf',
+                        '{{ cdb_data_top }}/{{ cdb_oracle_sid }}/undotbs01.dbf' ,  '{{ cdb_data_top }}/{{ cdb_oracle_sid }}/PDBSEED/undotbs01.dbf',
+                        '{{ cdb_data_top }}/{{ cdb_oracle_sid }}/temp01.dbf'    ,  '{{ cdb_data_top }}/{{ cdb_oracle_sid }}/PDBSEED/temp01.dbf');
+EXIT;

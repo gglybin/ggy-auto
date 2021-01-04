@@ -1,0 +1,214 @@
+--
+-- Vars
+--
+
+DEFINE sysPassword = {{ cdb_sys_pwd }}
+DEFINE systemPassword = {{ cdb_sys_pwd }}
+
+--
+-- CreateDBCatalog
+--
+
+set verify off
+connect "SYS"/"&&sysPassword" as SYSDBA
+set echo on
+spool /home/{{ os_db_owner }}/cdb_out/CreateDBCatalog.log append
+alter session set "_oracle_script"=true;
+alter pluggable database pdb$seed close;
+alter pluggable database pdb$seed open;
+host {{ oracle_home }}/perl/bin/perl {{ oracle_home }}/rdbms/admin/catcon.pl -n 1 -l /home/{{ os_db_owner }}/cdb_out -v  -b catalog  -U "SYS"/"&&sysPassword" {{ oracle_home }}/rdbms/admin/catalog.sql;
+host {{ oracle_home }}/perl/bin/perl {{ oracle_home }}/rdbms/admin/catcon.pl -n 1 -l /home/{{ os_db_owner }}/cdb_out -v  -b catproc  -U "SYS"/"&&sysPassword" {{ oracle_home }}/rdbms/admin/catproc.sql;
+host {{ oracle_home }}/perl/bin/perl {{ oracle_home }}/rdbms/admin/catcon.pl -n 1 -l /home/{{ os_db_owner }}/cdb_out -v  -b catoctk  -U "SYS"/"&&sysPassword" {{ oracle_home }}/rdbms/admin/catoctk.sql;
+host {{ oracle_home }}/perl/bin/perl {{ oracle_home }}/rdbms/admin/catcon.pl -n 1 -l /home/{{ os_db_owner }}/cdb_out -v  -b owminst  -U "SYS"/"&&sysPassword" {{ oracle_home }}/rdbms/admin/owminst.plb;
+host {{ oracle_home }}/perl/bin/perl {{ oracle_home }}/rdbms/admin/catcon.pl -n 1 -l /home/{{ os_db_owner }}/cdb_out -v  -b pupbld -u SYSTEM/&&systemPassword  -U "SYS"/"&&sysPassword" {{ oracle_home }}/sqlplus/admin/pupbld.sql;
+host {{ oracle_home }}/perl/bin/perl {{ oracle_home }}/rdbms/admin/catcon.pl -n 1 -l /home/{{ os_db_owner }}/cdb_out -v  -b pupdel -u SYS/&&sysPassword  -U "SYS"/"&&sysPassword" {{ oracle_home }}/sqlplus/admin/pupdel.sql;
+connect "SYSTEM"/"&&systemPassword"
+set echo on
+spool /home/{{ os_db_owner }}/cdb_out/sqlPlusHelp.log append
+host {{ oracle_home }}/perl/bin/perl {{ oracle_home }}/rdbms/admin/catcon.pl -n 1 -l /home/{{ os_db_owner }}/cdb_out -v  -b hlpbld -u SYSTEM/&&systemPassword  -U "SYS"/"&&sysPassword" -a 1  {{ oracle_home }}/sqlplus/admin/help/hlpbld.sql 1helpus.sql;
+spool off
+spool off
+
+--
+-- JServer 
+--
+
+set verify off
+connect "SYS"/"&&sysPassword" as SYSDBA
+set echo on
+spool  /home/{{ os_db_owner }}/cdb_out/JServer.log append
+host {{ oracle_home }}/perl/bin/perl {{ oracle_home }}/rdbms/admin/catcon.pl -n 1 -l /home/{{ os_db_owner }}/cdb_out -v  -b initjvm -c  'PDB$SEED CDB$ROOT'   -U "SYS"/"&&sysPassword" {{ oracle_home }}/javavm/install/initjvm.sql;
+host {{ oracle_home }}/perl/bin/perl {{ oracle_home }}/rdbms/admin/catcon.pl -n 1 -l /home/{{ os_db_owner }}/cdb_out -v  -b initxml -c  'PDB$SEED CDB$ROOT'   -U "SYS"/"&&sysPassword" {{ oracle_home }}/xdk/admin/initxml.sql;
+host {{ oracle_home }}/perl/bin/perl {{ oracle_home }}/rdbms/admin/catcon.pl -n 1 -l /home/{{ os_db_owner }}/cdb_out -v  -b xmlja -c  'PDB$SEED CDB$ROOT'   -U "SYS"/"&&sysPassword" {{ oracle_home }}/xdk/admin/xmlja.sql;
+host {{ oracle_home }}/perl/bin/perl {{ oracle_home }}/rdbms/admin/catcon.pl -n 1 -l /home/{{ os_db_owner }}/cdb_out -v  -b catjava -c  'PDB$SEED CDB$ROOT'   -U "SYS"/"&&sysPassword" {{ oracle_home }}/rdbms/admin/catjava.sql;
+connect "SYS"/"&&sysPassword" as SYSDBA
+host {{ oracle_home }}/perl/bin/perl {{ oracle_home }}/rdbms/admin/catcon.pl -n 1 -l /home/{{ os_db_owner }}/cdb_out -v  -b catxdbj -c  'PDB$SEED CDB$ROOT'   -U "SYS"/"&&sysPassword" {{ oracle_home }}/rdbms/admin/catxdbj.sql;
+spool off
+
+--
+-- context
+-- 
+
+set verify off
+connect "SYS"/"&&sysPassword" as SYSDBA
+set echo on
+spool /home/{{ os_db_owner }}/cdb_out/context.log append
+host {{ oracle_home }}/perl/bin/perl {{ oracle_home }}/rdbms/admin/catcon.pl -n 1 -l /home/{{ os_db_owner }}/cdb_out -v  -b catctx -c  'PDB$SEED CDB$ROOT'   -U "SYS"/"&&sysPassword" -a 1  {{ oracle_home }}/ctx/admin/catctx.sql 1Xbkfsdcdf1ggh_123 1SYSAUX 1{{ cdb_temp_tbs_name }} 1LOCK;
+alter user CTXSYS account unlock identified by "CTXSYS";
+connect "CTXSYS"/"CTXSYS"
+host {{ oracle_home }}/perl/bin/perl {{ oracle_home }}/rdbms/admin/catcon.pl -n 1 -l /home/{{ os_db_owner }}/cdb_out -v  -b dr0defin -c  'PDB$SEED CDB$ROOT'  -u CTXSYS/CTXSYS  -U "SYS"/"&&sysPassword" -a 1  {{ oracle_home }}/ctx/admin/defaults/dr0defin.sql 1\"AMERICAN\";
+connect "SYS"/"&&sysPassword" as SYSDBA
+alter user CTXSYS password expire account lock;
+host {{ oracle_home }}/perl/bin/perl {{ oracle_home }}/rdbms/admin/catcon.pl -n 1 -l /home/{{ os_db_owner }}/cdb_out -v  -b dbmsxdbt -c  'PDB$SEED CDB$ROOT'   -U "SYS"/"&&sysPassword" {{ oracle_home }}/rdbms/admin/dbmsxdbt.sql;
+spool off
+
+--
+-- ordinst
+--
+
+set verify off
+connect "SYS"/"&&sysPassword" as SYSDBA
+set echo on
+spool /home/{{ os_db_owner }}/cdb_out/ordinst.log append
+host {{ oracle_home }}/perl/bin/perl {{ oracle_home }}/rdbms/admin/catcon.pl -n 1 -l /home/{{ os_db_owner }}/cdb_out -v  -b ordinst  -U "SYS"/"&&sysPassword" -a 1  {{ oracle_home }}/ord/admin/ordinst.sql 1SYSAUX 1SYSAUX;
+spool off
+
+--
+-- interMedia
+--
+
+set verify off
+connect "SYS"/"&&sysPassword" as SYSDBA
+set echo on
+spool /home/{{ os_db_owner }}/cdb_out/interMedia.log append
+host {{ oracle_home }}/perl/bin/perl {{ oracle_home }}/rdbms/admin/catcon.pl -n 1 -l /home/{{ os_db_owner }}/cdb_out -v  -b iminst -c  'PDB$SEED CDB$ROOT'   -U "SYS"/"&&sysPassword" {{ oracle_home }}/ord/im/admin/iminst.sql;
+spool off
+
+--
+-- cwmlite
+--
+
+set verify off
+set echo on
+spool /home/{{ os_db_owner }}/cdb_out/cwmlite.log append
+connect "SYS"/"&&sysPassword" as SYSDBA
+host {{ oracle_home }}/perl/bin/perl {{ oracle_home }}/rdbms/admin/catcon.pl -n 1 -l /home/{{ os_db_owner }}/cdb_out -v  -b olap -c  'PDB$SEED CDB$ROOT'   -U "SYS"/"&&sysPassword" -a 1  {{ oracle_home }}/olap/admin/olap.sql 1SYSAUX 1{{ cdb_temp_tbs_name }};
+spool off
+
+--
+-- spatial
+--
+
+set verify off
+connect "SYS"/"&&sysPassword" as SYSDBA
+set echo on
+spool /home/{{ os_db_owner }}/cdb_out/spatial.log append
+host {{ oracle_home }}/perl/bin/perl {{ oracle_home }}/rdbms/admin/catcon.pl -n 1 -l /home/{{ os_db_owner }}/cdb_out -v  -b mdinst -c  'PDB$SEED CDB$ROOT'   -U "SYS"/"&&sysPassword" {{ oracle_home }}/md/admin/mdinst.sql;
+spool off
+
+--
+-- labelSecurity
+--
+
+set verify off
+connect "SYS"/"&&sysPassword" as SYSDBA
+set echo on
+spool /home/{{ os_db_owner }}/cdb_out/labelSecurity.log append
+host {{ oracle_home }}/perl/bin/perl {{ oracle_home }}/rdbms/admin/catcon.pl -n 1 -l /home/{{ os_db_owner }}/cdb_out -v  -b catols -c  'PDB$SEED CDB$ROOT'   -U "SYS"/"&&sysPassword" {{ oracle_home }}/rdbms/admin/catols.sql;
+spool off
+
+--
+-- datavault
+--
+
+set verify off
+connect "SYS"/"&&sysPassword" as SYSDBA
+set echo on
+spool /home/{{ os_db_owner }}/cdb_out/datavault.log append
+host {{ oracle_home }}/perl/bin/perl {{ oracle_home }}/rdbms/admin/catcon.pl -n 1 -l /home/{{ os_db_owner }}/cdb_out -v  -b catmac -c  'PDB$SEED CDB$ROOT'   -U "SYS"/"&&sysPassword" -a 1  {{ oracle_home }}/rdbms/admin/catmac.sql 1SYSAUX 1{{ cdb_temp_tbs_name }};
+
+--
+-- CreateClustDBViews
+--
+
+set verify off
+connect "SYS"/"&&sysPassword" as SYSDBA
+set echo on
+spool /home/{{ os_db_owner }}/cdb_out/CreateClustDBViews.log append
+host {{ oracle_home }}/perl/bin/perl {{ oracle_home }}/rdbms/admin/catcon.pl -n 1 -l /home/{{ os_db_owner }}/cdb_out -v  -b catclust  -U "SYS"/"&&sysPassword" {{ oracle_home }}/rdbms/admin/catclust.sql;
+host {{ oracle_home }}/perl/bin/perl {{ oracle_home }}/rdbms/admin/catcon.pl -n 1 -l /home/{{ os_db_owner }}/cdb_out -v  -b catfinal  -U "SYS"/"&&sysPassword" {{ oracle_home }}/rdbms/admin/catfinal.sql;
+spool off
+connect "SYS"/"&&sysPassword" as SYSDBA
+set echo on
+spool /home/{{ os_db_owner }}/cdb_out/postDBCreation.log append
+
+--
+-- lockAccount
+--
+
+set verify off
+connect "SYS"/"&&sysPassword" as SYSDBA
+set echo on
+spool /home/{{ os_db_owner }}/cdb_out/lockAccount.log append
+alter session set "_oracle_script"=true;
+alter pluggable database pdb$seed close;
+alter pluggable database pdb$seed open;
+BEGIN
+ FOR item IN ( SELECT USERNAME, AUTHENTICATION_TYPE FROM DBA_USERS WHERE ACCOUNT_STATUS IN ('OPEN', 'LOCKED', 'EXPIRED') AND USERNAME NOT IN (
+'SYS','SYSTEM') )
+ LOOP
+IF item.AUTHENTICATION_TYPE='PASSWORD' THEN
+  dbms_output.put_line('Locking and Expiring: ' || item.USERNAME);
+  execute immediate 'alter user ' ||
+         sys.dbms_assert.enquote_name(
+         sys.dbms_assert.schema_name(
+         item.USERNAME),false) || ' password expire account lock' ;
+ ELSE
+  dbms_output.put_line('Locking: ' || item.USERNAME);
+  execute immediate 'alter user ' ||
+         sys.dbms_assert.enquote_name(
+         sys.dbms_assert.schema_name(
+         item.USERNAME),false) || ' account lock' ;
+ END IF;
+ END LOOP;
+END;
+/
+alter session set container=pdb$seed;
+BEGIN
+ FOR item IN ( SELECT USERNAME, AUTHENTICATION_TYPE FROM DBA_USERS WHERE ACCOUNT_STATUS IN ('OPEN', 'LOCKED', 'EXPIRED') AND USERNAME NOT IN (
+'SYS','SYSTEM') )
+ LOOP
+IF item.AUTHENTICATION_TYPE='PASSWORD' THEN
+  dbms_output.put_line('Locking and Expiring: ' || item.USERNAME);
+  execute immediate 'alter user ' ||
+         sys.dbms_assert.enquote_name(
+         sys.dbms_assert.schema_name(
+         item.USERNAME),false) || ' password expire account lock' ;
+ ELSE
+  dbms_output.put_line('Locking: ' || item.USERNAME);
+  execute immediate 'alter user ' ||
+         sys.dbms_assert.enquote_name(
+         sys.dbms_assert.schema_name(
+         item.USERNAME),false) || ' account lock' ;
+ END IF;
+ END LOOP;
+END;
+/
+alter session set container=cdb$root;
+spool off
+
+--
+-- postDBCreation
+--
+
+set verify off
+spool /home/{{ os_db_owner }}/cdb_out/postDBCreation.log append
+host {{ oracle_home }}/OPatch/datapatch -skip_upgrade_check -db {{ cdb_oracle_sid }};
+connect "SYS"/"&&sysPassword" as SYSDBA
+set echo on
+host {{ oracle_home }}/perl/bin/perl {{ oracle_home }}/rdbms/admin/catcon.pl -n 1 -l /home/{{ os_db_owner }}/cdb_out -v  -b utlrp  -U "SYS"/"&&sysPassword" {{ oracle_home }}/rdbms/admin/utlrp.sql;
+shutdown immediate;
+connect "SYS"/"&&sysPassword" as SYSDBA
+startup ;
+spool off
+exit;

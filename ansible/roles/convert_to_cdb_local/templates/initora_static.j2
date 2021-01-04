@@ -1,0 +1,119 @@
+##
+## General:
+##
+
+*.db_name='{{ cdb_db_name }}'
+*.audit_file_dest='{{ oracle_base }}/admin/{{ cdb_db_name|lower }}/adump'
+*.audit_trail='DB'
+*.connection_brokers='((TYPE=DEDICATED)(BROKERS=1))','((TYPE=EMON)(BROKERS=1))'
+*.control_files='{{ cdb_data_top }}/{{ cdb_oracle_sid }}/control01.ctl','{{ cdb_redo_top }}/{{ cdb_oracle_sid }}/control02.ctl'
+*.core_dump_dest='{{ oracle_base }}/diag/rdbms/{{ cdb_db_name|lower }}/{{ cdb_oracle_sid }}/cdump'
+*.diagnostic_dest='{{ oracle_base }}'
+*.dispatchers=''
+#*.event='28401 trace name context forever, level 1','12633340 trace name context forever, level 5','10949 trace name context forever'
+*.job_queue_processes={{ (ansible_processor_vcpus / 2) | round | int | abs }}
+*.local_listener=''
+*.log_archive_dest_1='LOCATION={{ cdb_arc_top }}/{{ cdb_oracle_sid }}'
+*.log_archive_format='{{ cdb_oracle_sid|lower }}_%t_%s_%r.arc'
+*.max_dump_file_size='100M'
+*.nls_language='AMERICAN'
+*.nls_territory='AMERICA'
+*.open_cursors=300
+*.processes=650
+*.sessions=997
+*.transactions=1097
+*.recyclebin='OFF'
+*.remote_login_passwordfile='EXCLUSIVE'
+*.resource_limit=FALSE
+*.resource_manager_plan='FORCE:'  # EXEC_TIME_LIMIT
+*.service_names='{{ cdb_oracle_sid }}'
+*.skip_unusable_indexes=TRUE
+*.undo_management=AUTO
+*.undo_tablespace='UNDOTBS1'
+*.undo_retention=900
+
+##
+## PDB:
+##
+
+enable_pluggable_database=true
+
+##
+## I/O:
+##
+
+*.db_block_checking='FULL'
+*.db_block_checksum='FULL'
+*.db_block_size=8192
+*.db_files=2000
+*.db_lost_write_protect='TYPICAL'
+*.db_writer_processes=4
+*.deferred_segment_creation=FALSE
+*.disk_asynch_io=TRUE
+*.filesystemio_options='SETALL'
+*.fast_start_mttr_target=900
+*.log_checkpoints_to_alert=TRUE
+*.control_file_record_keep_time=15
+
+##
+## Memory:
+##
+
+*.lock_sga=TRUE
+*.sga_max_size={{ ((ansible_memtotal_mb * 60) / 100) | round | int | abs }}M
+*.sga_target={{ ((ansible_memtotal_mb * 60) / 100) | round | int | abs }}M
+*.pga_aggregate_limit=2048M
+*.pga_aggregate_target=1024M
+*.db_cache_size={{ ((ansible_memtotal_mb * 3600) / 10000) | round | int | abs }}M
+*.log_buffer=256M
+*.use_large_pages='TRUE'
+
+##
+## PCI DSS:
+##
+
+*.audit_sys_operations=TRUE
+
+##
+## Queries:
+##
+
+*.control_management_pack_access='DIAGNOSTIC+TUNING'
+*.optimizer_dynamic_sampling=2
+*.optimizer_adaptive_features=FALSE   # Depreciated since 12.2. Two new parameters - optimizer_adaptive_plans and optimizer_adaptive_statistics
+#*.optimizer_adaptive_plans=FALSE
+#*.optimizer_adaptive_statistics=FALSE
+*.optimizer_mode='ALL_ROWS'
+*.parallel_execution_message_size=65536
+*.parallel_force_local=TRUE
+*.parallel_max_servers={{ (ansible_processor_vcpus / 2) | round | int | abs }}
+*.parallel_threads_per_cpu=1
+*.plsql_warnings='DISABLE:ALL'
+*.query_rewrite_enabled='TRUE'
+
+##
+## Data Guard:
+##
+
+*.archive_lag_target=900
+# *.log_archive_config='dg_config=(ORCL,ORCL_STBY)'
+# *.log_archive_dest_state_2=DEFER; # ENABLE
+# *.log_archive_dest_2='SERVICE=ORCL_STBY LGWR ASYNC NOAFFIRM VALID_FOR=(ONLINE_LOGFILES,PRIMARY_ROLE) DB_UNIQUE_NAME=ORCL_STBY' # Max Performance
+# *.standby_file_management=AUTO
+# *.fal_server=ORCL_STBY
+# *.fal_client=ORCL
+
+##
+## Hidden:
+##
+
+*._client_enable_auto_unregister=TRUE
+*._cursor_obsolete_threshold=1024
+*._external_scn_logging_threshold_seconds=600
+*._PX_use_large_pool=TRUE
+*._rollback_segment_count=1400
+*._trace_files_public=TRUE
+*._use_adaptive_log_file_sync=FALSE
+*._undo_autotune=FALSE
+*._undo_block_compression=FALSE
+*._use_single_log_writer=TRUE

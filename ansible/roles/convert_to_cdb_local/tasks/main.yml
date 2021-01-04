@@ -1,0 +1,332 @@
+---
+# tasks file for convert_to_cdb_local
+
+- name: Check Database Version
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  shell: |
+    export ORACLE_SID={{ oracle_sid }} &&
+    export ORACLE_HOME={{ oracle_home }} &&
+    export PATH=$ORACLE_HOME:$ORACLE_HOME/bin:$PATH &&
+    $ORACLE_HOME/bin/sqlplus -s / as sysdba <<EOF
+    set head off;
+    set feedback off;
+    set serveroutput on;
+    declare
+      curr_version varchar2(20);
+    begin
+      select substr(version,0,2) into curr_version from v\$instance;
+      dbms_output.put_line(curr_version);
+    end;
+    /
+    exit;
+    EOF
+  register: db_version
+
+- name: Stop play if database version is not acceptable
+  fail:
+    msg: "This role tested on 12.1.0.2 and 19c database versions only. But your database version is {{ db_version.stdout }}."
+  when: db_version.stdout not in db_acceptable_versions
+
+- name: Stop Non-CDB database [{{ oracle_sid }}]
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  shell: |
+    export ORACLE_SID={{ oracle_sid }} &&
+    export ORACLE_HOME={{ oracle_home }} &&
+    export PATH=$ORACLE_HOME:$ORACLE_HOME/bin:$PATH &&
+    $ORACLE_HOME/bin/sqlplus -s / as sysdba <<EOF
+    shu immediate;
+    exit;
+    EOF
+
+- name: Start Non-CDB database [{{ oracle_sid }}] in Read-Only Mode
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  shell: |
+    export ORACLE_SID={{ oracle_sid }} &&
+    export ORACLE_HOME={{ oracle_home }} &&
+    export PATH=$ORACLE_HOME:$ORACLE_HOME/bin:$PATH &&
+    $ORACLE_HOME/bin/sqlplus -s / as sysdba <<EOF
+    startup open read only;
+    exit;
+    EOF
+
+- name: Describe Non-CDB database [{{ oracle_sid }}] and generate xml file
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  shell: |
+    export ORACLE_SID={{ oracle_sid }} &&
+    export ORACLE_HOME={{ oracle_home }} &&
+    export PATH=$ORACLE_HOME:$ORACLE_HOME/bin:$PATH &&
+    $ORACLE_HOME/bin/sqlplus -s / as sysdba <<EOF
+    exec dbms_pdb.describe(pdb_descr_file => '/home/{{ os_db_owner }}/{{ oracle_sid }}_desc.xml');
+    exit;
+    EOF
+
+- name: Stop Non-CDB database [{{ oracle_sid }}]
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  shell: |
+    export ORACLE_SID={{ oracle_sid }} &&
+    export ORACLE_HOME={{ oracle_home }} &&
+    export PATH=$ORACLE_HOME:$ORACLE_HOME/bin:$PATH &&
+    sqlplus -s / as sysdba <<EOF
+      shu immediate;
+      exit;
+    EOF
+
+- name: Copy dynamic database parameter file
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  when: ((((ansible_memtotal_mb - ((ansible_memtotal_mb * 60) / 100)) * 50) / 100) | round | int | abs) > 2048
+  template:
+    src: "initora_dynamic.j2"
+    dest: "{{ oracle_home }}/dbs/init{{ cdb_oracle_sid }}.ora"
+
+- name: Copy static database parameter file
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  when: ((((ansible_memtotal_mb - ((ansible_memtotal_mb * 60) / 100)) * 50) / 100) | round | int | abs) <= 2048
+  template:
+    src: "initora_static.j2"
+    dest: "{{ oracle_home }}/dbs/init{{ cdb_oracle_sid }}.ora"
+
+- name: Copy database creation script
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  template:
+    src: "create_cdb_database.j2"
+    dest: "/home/{{ os_db_owner }}/create_cdb_database.sql"
+    mode: '0775'
+
+- name: Create additional directories and set permissions
+  file:
+    path: "{{ item }}"
+    state: directory
+    recurse: yes
+    owner: "{{ os_db_owner }}"
+    group: oinstall
+    mode: '0775'
+  with_items:
+    - "{{ oracle_base }}/admin/{{ cdb_db_name|lower }}/adump"
+    - "{{ cdb_data_top }}/{{ cdb_oracle_sid }}/PDBSEED"
+    - "{{ cdb_data_top }}/{{ cdb_oracle_sid }}/{{ pdb_name }}"
+    - "{{ cdb_redo_top }}/{{ cdb_oracle_sid }}"
+    - "{{ oracle_base }}/diag/rdbms/{{ cdb_db_name|lower }}/{{ cdb_oracle_sid }}/cdump"
+    - "{{ cdb_arc_top }}/{{ cdb_oracle_sid }}"
+    - "/home/{{ os_db_owner }}/cdb_out"
+
+- name: Create password file
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  no_log: true
+  shell: |
+    export ORACLE_SID={{ cdb_oracle_sid }} &&
+    export ORACLE_HOME={{ oracle_home }} &&
+    export PATH=$ORACLE_HOME:$ORACLE_HOME/bin:$PATH &&
+    orapwd file={{ oracle_home }}/dbs/orapw{{ cdb_oracle_sid }} password={{ cdb_sys_pwd }} format=12 force=y
+
+- name: INFO
+  debug:
+    msg:
+       - 'Starting CDB database instance creation process. It will take a while ... (~ 50 min)'
+
+- name: Start CDB database [{{ cdb_oracle_sid }}] in NOMOUNT
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  shell: |
+    export ORACLE_SID={{ cdb_oracle_sid }} &&
+    export ORACLE_HOME={{ oracle_home }} &&
+    export PATH=$ORACLE_HOME:$ORACLE_HOME/bin:$PATH &&
+    $ORACLE_HOME/bin/sqlplus -s / as sysdba <<EOF
+    create spfile from pfile;
+    startup nomount;
+    exit;
+    EOF
+
+- name: Run create_cdb_database.sql script
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  shell: |
+    export ORACLE_SID={{ cdb_oracle_sid }} &&
+    export ORACLE_HOME={{ oracle_home }} &&
+    export PATH=$ORACLE_HOME:$ORACLE_HOME/bin:$PATH &&
+    $ORACLE_HOME/bin/sqlplus -s / as sysdba @/home/{{ os_db_owner }}/create_cdb_database.sql
+
+- name: Copy components.sql script (12c)
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  template:
+    src: "components_12c.j2"
+    dest: "/home/{{ os_db_owner }}/components.sql"
+    mode: '0775'
+  when: db_version.stdout == "12"
+
+- name: Copy components.sql script (19c)
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  template:
+    src: "components_19c.j2"
+    dest: "/home/{{ os_db_owner }}/components.sql"
+    mode: '0775'
+  when: db_version.stdout == "19"
+
+- name: Run components.sql script
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  shell: |
+    export ORACLE_SID={{ cdb_oracle_sid }} &&
+    export ORACLE_HOME={{ oracle_home }} &&
+    export PATH=$ORACLE_HOME/perl:$ORACLE_HOME/bin:$PATH &&
+    $ORACLE_HOME/bin/sqlplus -s / as sysdba <<EOF
+    @/home/{{ os_db_owner }}/components.sql
+    exit;
+    EOF
+
+- name: Copy compatibility check script
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  template:
+    src: "compatibility_check.j2"
+    dest: "/home/{{ os_db_owner }}/compatibility_check.sh"
+    mode: '0700'
+
+- name: Check Non-CDB [{{ oracle_sid }}] and CDB [{{ cdb_oracle_sid }}] compatibility
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  shell: "sh /home/{{ os_db_owner }}/compatibility_check.sh"
+  register: compatibility_check_result
+
+- name: Stop play if databases are incompatible
+  fail:
+    msg: "Looks like Non-CDB [{{ oracle_sid }}] database is not compatible with prepared CDB [{{ cdb_oracle_sid }}] database. Please check PDB_PLUG_IN_VIOLATIONS view in your CDB[{{ cdb_oracle_sid }}] to get more details."
+  when: compatibility_check_result.stdout != "YES"
+
+- name: Create PDB [{{ pdb_name }}] database
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  shell: |
+    export ORACLE_SID={{ cdb_oracle_sid }} &&
+    export ORACLE_HOME={{ oracle_home }} &&
+    export PATH=$ORACLE_HOME:$ORACLE_HOME/bin:$PATH &&
+    $ORACLE_HOME/bin/sqlplus -s / as sysdba <<EOF
+    CREATE PLUGGABLE DATABASE {{ pdb_name }} USING '/home/{{ os_db_owner }}/{{ oracle_sid }}_desc.xml' COPY FILE_NAME_CONVERT=('{{ data_top }}/','{{ cdb_data_top }}/{{ cdb_oracle_sid }}/{{ pdb_name }}/');
+    exit;
+    EOF
+
+- name: Run noncdb_to_pdb.sql script for PDB = {{ pdb_name }}
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  shell: |
+    export ORACLE_SID={{ cdb_oracle_sid }} &&
+    export ORACLE_HOME={{ oracle_home }} &&
+    export PATH=$ORACLE_HOME:$ORACLE_HOME/bin:$PATH &&
+    $ORACLE_HOME/bin/sqlplus -s / as sysdba <<EOF
+    ALTER SESSION SET CONTAINER={{ pdb_name }};
+    @?/rdbms/admin/noncdb_to_pdb.sql
+    exit;
+    EOF
+
+- name: Open PDB [{{ pdb_name }}] database for Read-Write
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  shell: |
+    export ORACLE_SID={{ cdb_oracle_sid }} &&
+    export ORACLE_HOME={{ oracle_home }} &&
+    export PATH=$ORACLE_HOME:$ORACLE_HOME/bin:$PATH &&
+    echo 'alter pluggable database {{ pdb_name }} open;' |
+    $ORACLE_HOME/bin/sqlplus -s / as sysdba <<EOF
+    alter pluggable database {{ pdb_name }} open;
+    exit;
+    EOF
+
+- name: Enable PDB [{{ pdb_name }}] auto-start with CDB
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  shell: |
+    export ORACLE_SID={{ cdb_oracle_sid }} &&
+    export ORACLE_HOME={{ oracle_home }} &&
+    export PATH=$ORACLE_HOME:$ORACLE_HOME/bin:$PATH &&
+    $ORACLE_HOME/bin/sqlplus -s / as sysdba <<EOF
+    alter pluggable database {{ pdb_name }} save state;
+    exit;
+    EOF
+
+- name: Enable Archive Mode
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  shell: |
+    export ORACLE_SID={{ cdb_oracle_sid }} &&
+    export ORACLE_HOME={{ oracle_home }} &&
+    export PATH=$ORACLE_HOME:$ORACLE_HOME/bin:$PATH &&
+    $ORACLE_HOME/bin/sqlplus -s / as sysdba <<EOF
+    shu immediate;
+    startup mount;
+    alter database archivelog;
+    alter database open;
+    exit;
+    EOF
+
+- name: Apply additional database settings
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  shell: |
+    export ORACLE_SID={{ cdb_oracle_sid }} &&
+    export ORACLE_HOME={{ oracle_home }} &&
+    export PATH=$ORACLE_HOME:$ORACLE_HOME/bin:$PATH &&
+    $ORACLE_HOME/bin/sqlplus -s / as sysdba <<EOF
+    audit create session;
+    exec dbms_workload_repository.modify_baseline_window_size(window_size => 7);
+    exec dbms_workload_repository.modify_snapshot_settings(interval => 15, retention => 10080);
+    exec dbms_auto_task_admin.disable(client_name=>'sql tuning advisor', operation=>NULL, window_name=>NULL);
+    exec dbms_auto_task_admin.disable(client_name=>'auto space advisor', operation=>NULL, window_name=>NULL);
+    exit;
+    EOF
+
+- name: Set RMAN retention policy to 7 days
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  shell: |
+    export ORACLE_SID={{ cdb_oracle_sid }} &&
+    export ORACLE_HOME={{ oracle_home }} &&
+    export PATH=$ORACLE_HOME:$ORACLE_HOME/bin:$PATH &&
+    $ORACLE_HOME/bin/rman target / <<EOF
+    CONFIGURE RETENTION POLICY TO RECOVERY WINDOW OF 7 DAYS;
+    exit;
+    EOF
+
+- name: Create /home/{{ os_db_owner }}/{{ cdb_oracle_sid }}.env file
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  template:
+    src: "env.j2"
+    dest: "/home/{{ os_db_owner }}/{{ cdb_oracle_sid }}.env"
+
+- name: Update /etc/oratab
+  lineinfile:
+    path: "/etc/oratab"
+    line: "{{ cdb_oracle_sid }}:{{ oracle_home }}:N"
+    state: present
+    backup: yes
+
+- name: Create symbolic link to CDB database alert.log file
+  file:
+    src: "{{ oracle_base }}/diag/rdbms/{{ cdb_db_name|lower }}/{{ cdb_oracle_sid }}/trace/alert_{{ cdb_oracle_sid }}.log"
+    dest: "/home/{{ os_db_owner }}/alert_{{ cdb_oracle_sid }}.log"
+    state: link
+
+- name: Cleanup
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - "/home/{{ os_db_owner }}/{{ oracle_sid }}_desc.xml"
+    - "/home/{{ os_db_owner }}/create_cdb_database.sql"
+    - "/home/{{ os_db_owner }}/components.sql"
+    - "/home/{{ os_db_owner }}/compatibility_check.sh"
+
+- name: INFO
+  debug:
+    msg:
+       - 'Non-CDB Database = {{ oracle_sid }} has been successfully converted to PDB = {{ pdb_name}} and plugged into CDB = {{ cdb_oracle_sid }}.'
