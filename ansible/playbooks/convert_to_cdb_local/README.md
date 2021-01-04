@@ -10,7 +10,7 @@ TOTAL ~ 1h
 
 RedHat Releases 7, 8 (x86_64)
 
-Oracle Database 12c(12.1.0.2), 19c
+Oracle Database 12c (12.1.0.2), 19c - Standalone.
 
 ## Notes
 
