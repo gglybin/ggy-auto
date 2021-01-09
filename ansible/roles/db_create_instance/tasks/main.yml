@@ -237,6 +237,8 @@
     - "SET SQLPROMPT \"_USER'@'_CONNECT_IDENTIFIER > \";"
     - "SET LINES 400;"
     - "SET PAGES 1000;"
+    - "-- How to Exit from SQL*Plus with a Rollback to Prevent Automatic Commit (Doc ID 270140.1)"
+    - "--SET EXITC OFF;"
 
 - name: Create symbolic link to database alert.log file
   become: yes
