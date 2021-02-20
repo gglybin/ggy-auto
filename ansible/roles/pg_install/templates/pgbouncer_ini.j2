@@ -1,0 +1,18 @@
+[databases]
+* = host={{ ansible_fqdn }} port={{ pg_port }}
+
+[pgbouncer]
+listen_port = {{ pg_bouncer_port }}
+listen_addr = *
+auth_type = md5
+auth_file = /etc/pgbouncer/userlist.txt
+logfile = {{ os_pg_logs }}/pgbouncer.log
+pidfile = /var/run/pgbouncer/pgbouncer.pid
+admin_users=postgres
+max_client_conn = 2000
+pool_mode = transaction
+default_pool_size = 20
+min_pool_size = 4
+max_db_connections = 20
+reserve_pool_size = 1
+reserve_pool_timeout = 1

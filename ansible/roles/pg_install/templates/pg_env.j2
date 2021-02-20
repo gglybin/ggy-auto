@@ -1,0 +1,65 @@
+##
+## PostgreSQL
+##
+
+export PATH
+export LD_LIBRARY_PATH=/usr/pgsql-{{ pg_version }}/lib
+export PATH=/usr/pgsql-{{ pg_version }}/bin:$PATH
+export PGHOME=/usr/pgsql-{{ pg_version }}
+export PGDATA={{ os_pg_data }}
+export PS1='\[\033[0;33m\]\u@\h\[\033[00m\] [\t] \w]\$ '
+
+alias pghba='view {{ os_pg_data }}/pg_hba.conf'
+alias pgconf='view {{ os_pg_data }}/postgresql.conf'
+alias pgcust='view {{ os_pg_data }}/custom.conf'
+alias pglog='view {{ os_pg_logs }}/postgresql-$(date +"%Y-%m-%d").log'
+alias pglogtail='tail -100f {{ os_pg_logs }}/postgresql-$(date +"%Y-%m-%d").log'
+alias pglogerr="tail -100f {{ os_pg_logs }}/postgresql-$(date +"%Y-%m-%d").log | egrep -i 'WARNING|ERROR|FATAL'"
+alias pgver="psql -tc 'select version();'"
+alias cdpgdata="cd {{ os_pg_data }}"
+alias cdpglogs="cd {{ os_pg_logs }}"
+alias cdpgts="cd {{ os_pg_tablespaces }}"
+
+chkparam() {
+psql -f ~/dba/scripts/param_info.sql -v param=\'${1}\'
+}
+
+chkmemparam() {
+psql -f ~/dba/scripts/mem_param_check.sql
+}
+
+sess_info() {
+psql -f ~/dba/scripts/sess_info.sql -v pid=\'${1}\'
+}
+
+sess_info_all() {
+psql -f ~/dba/scripts/sess_info_all.sql
+}
+
+block_sess() {
+psql -f ~/dba/scripts/block_sess.sql
+}
+
+block_tree() {
+psql -f ~/dba/scripts/lock_tree.sql
+}
+
+waits() {
+psql -f ~/dba/scripts/waits_info.sql
+}
+
+qst() {
+psql -f ~/dba/scripts/query_stat_total.sql
+}
+
+qsio() {
+psql -f ~/dba/scripts/query_stat_io_time.sql
+}
+
+qscpu() {
+psql -f ~/dba/scripts/query_stat_cpu_time.sql
+}
+
+chkreplica() {
+psql -f ~/dba/scripts/replica_info.sql
+}

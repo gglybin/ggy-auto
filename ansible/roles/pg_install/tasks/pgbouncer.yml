@@ -1,0 +1,77 @@
+---
+- name: Create directory for pgBouncer RPM packages
+  file:
+    path: "/home/{{ os_pg_owner }}/dba/soft/pgbouncer_rpm"
+    state: directory
+    recurse: yes
+    owner: "{{ os_pg_owner }}"
+    group: postgres
+    mode: '0775'
+
+- name: Copy pgBouncer packages
+  copy:
+    src: "{{ item }}"
+    dest: "/home/{{ os_pg_owner }}/dba/soft/pgbouncer_rpm/"
+    owner: "{{ os_pg_owner }}"
+    mode: 0775
+  with_fileglob:
+    - "{{ role_path }}/files/{{ ansible_facts['distribution_major_version'] }}/pgbouncer/*"
+
+- name: Install pgBouncer
+  shell:
+    cmd: "yum -y localinstall /home/{{ os_pg_owner }}/dba/soft/pgbouncer_rpm/*.rpm"
+
+- name: Backup original config
+  shell: |
+    mv /etc/pgbouncer/pgbouncer.ini /etc/pgbouncer/pgbouncer.ini_original
+
+- name: Copy pgbouncer.ini file
+  template:
+    src: "pgbouncer_ini.j2"
+    dest: "/etc/pgbouncer/pgbouncer.ini"
+    mode: '0644'
+
+- name: Generate userlist.txt file
+  shell: |
+    echo "\"postgres\" \"md5"$(echo -n '{{ pg_superuser_pwd }}postgres' | md5sum | awk '{print $1}')\" >> /etc/pgbouncer/userlist.txt &&
+    echo "\"{{ db_user }}\" \"md5"$(echo -n '{{ db_user_pwd }}{{ db_user }}' | md5sum | awk '{print $1}')\" >> /etc/pgbouncer/userlist.txt
+
+- name: Provide permissions to {{ os_pg_owner}} user
+  file:
+    dest: /etc/pgbouncer
+    owner: "{{ os_pg_owner }}"
+    group: postgres
+    recurse: yes
+
+- name: Copy pgBouncer system service file
+  template:
+    src: "pgbouncer_service.j2"
+    dest: "/etc/systemd/system/pgbouncer.service"
+    mode: '0644'
+
+- name: Enable pgBouncer service
+  service:
+    name: pgbouncer.service
+    enabled: yes
+
+- name: Start pgBouncer
+  service:
+    name: pgbouncer.service
+    state: started
+
+- name: Update /home/{{ os_pg_owner }}/.pg.env file
+  become: yes
+  become_user: "{{ os_pg_owner }}"
+  shell: |
+    cat <<EOT >> /home/{{ os_pg_owner }}/.pg.env
+
+    ##
+    ## pgBouncer
+    ##
+
+    alias pgbconf='view /etc/pgbouncer/pgbouncer.ini'
+    alias pgbusr='view /etc/pgbouncer/userlist.txt'
+    alias pgblog='view {{ os_pg_logs }}/pgbouncer.log'
+    alias pgblogtail='tail -100f {{ os_pg_logs }}/pgbouncer.log'
+    alias pgblogerr="tail -100f {{ os_pg_logs }}/pgbouncer.log | egrep -i 'WARNING|ERROR|FATAL'"
+    EOT

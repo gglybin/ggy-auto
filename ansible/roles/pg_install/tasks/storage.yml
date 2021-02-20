@@ -1,0 +1,49 @@
+---
+- name: Install lvm2 package
+  yum:
+    name: lvm2
+    state: present
+
+- name: Create partition on {{ device_name }} device
+  parted:
+    device: "{{ device_name }}"
+    number: "{{ partition_number }}"
+    label: gpt
+    flags: [ lvm ]
+    state: present
+
+- name: Creating LVM Physical Volume and Volume Group
+  lvg:
+    vg: "{{ lvm_volume_group_name }}"
+    pvs: "{{ device_name }}{{ partition_number }}"
+
+- name: Creating Logical Volumes
+  lvol:
+    lv: "{{ item.key }}"
+    vg: "{{ lvm_volume_group_name }}"
+    size: "{{ item.value.1 }}"
+  with_dict:
+    - "{{ lvm_volumes_info }}"
+
+- name: Create file system
+  filesystem:
+    fstype: "{{ item.value.2 }}"
+    dev: "/dev/{{ lvm_volume_group_name }}/{{ item.key }}"
+  with_dict:
+    - "{{ lvm_volumes_info }}"
+
+- name: Create mount point directory
+  file:
+    path: "{{ item.value.0 }}"
+    state: directory
+  with_dict:
+    - "{{ lvm_volumes_info }}"
+
+- name: Mount and update /etc/fstab
+  mount:
+    path: "{{ item.value.0 }}"
+    src: "/dev/{{ lvm_volume_group_name }}/{{ item.key }}"
+    fstype: "{{ item.value.2 }}"
+    state: mounted
+  with_dict:
+    - "{{ lvm_volumes_info }}"

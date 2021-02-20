@@ -1,0 +1,185 @@
+---
+- name: Create directory for pg_probackup RPM packages
+  file:
+    path: "/home/{{ os_pg_owner }}/dba/soft/pg_probackup_rpm"
+    state: directory
+    recurse: yes
+    owner: "{{ os_pg_owner }}"
+    group: postgres
+    mode: '0775'
+
+- name: Copy pg_probackup packages
+  copy:
+    src: "{{ item }}"
+    dest: "/home/{{ os_pg_owner }}/dba/soft/pg_probackup_rpm/"
+    owner: "{{ os_pg_owner }}"
+    mode: 0775
+  with_fileglob:
+    - "{{ role_path }}/files/pg_probackup/{{ pg_version }}/*"
+
+- name: Install pg_probackup
+  shell:
+    cmd: "yum -y localinstall /home/{{ os_pg_owner }}/dba/soft/pg_probackup_rpm/*.rpm"
+
+- name: Create backup directory {{ bkp_dir }}/pg_probackup/{{ bkp_instance_name }}
+  become: yes
+  become_user: "{{ os_pg_owner }}"
+  file:
+    path: "{{ bkp_dir }}/pg_probackup/{{ bkp_instance_name }}"
+    state: directory
+    recurse: yes
+    mode: '0700'
+
+- name: Create {{ bkp_db_name }} database
+  become: yes
+  become_user: "{{ os_pg_owner }}"
+  shell:
+    psql -c "create database {{ bkp_db_name }};"
+
+- name: Create {{ bkp_usr }} database user
+  become: yes
+  become_user: "{{ os_pg_owner }}"
+  shell:
+    psql -d {{ bkp_db_name }} -c "BEGIN;
+             SET LOCAL log_statement = 'none';
+             CREATE ROLE {{ bkp_usr }} WITH LOGIN REPLICATION password '{{ bkp_usr_pwd }}';
+             GRANT USAGE ON SCHEMA pg_catalog TO {{ bkp_usr }};
+             GRANT EXECUTE ON FUNCTION pg_catalog.current_setting(text) TO {{ bkp_usr }};
+             GRANT EXECUTE ON FUNCTION pg_catalog.pg_is_in_recovery() TO {{ bkp_usr }};
+             GRANT EXECUTE ON FUNCTION pg_catalog.pg_start_backup(text, boolean, boolean) TO {{ bkp_usr }};
+             GRANT EXECUTE ON FUNCTION pg_catalog.pg_stop_backup(boolean) TO {{ bkp_usr }};
+             GRANT EXECUTE ON FUNCTION pg_catalog.pg_create_restore_point(text) TO {{ bkp_usr }};
+             GRANT EXECUTE ON FUNCTION pg_catalog.pg_switch_xlog() TO {{ bkp_usr }};
+             GRANT EXECUTE ON FUNCTION pg_catalog.pg_last_xlog_replay_location() TO {{ bkp_usr }};
+             GRANT EXECUTE ON FUNCTION pg_catalog.txid_current() TO {{ bkp_usr }};
+             GRANT EXECUTE ON FUNCTION pg_catalog.txid_current_snapshot() TO {{ bkp_usr }};
+             GRANT EXECUTE ON FUNCTION pg_catalog.txid_snapshot_xmax(txid_snapshot) TO {{ bkp_usr }};
+             GRANT EXECUTE ON FUNCTION pg_catalog.pg_control_checkpoint() TO {{ bkp_usr }};
+             COMMIT;"
+  when: pg_version == "9.6"
+
+- name: Create {{ bkp_usr }} database user
+  become: yes
+  become_user: "{{ os_pg_owner }}"
+  shell:
+    psql -d {{ bkp_db_name }} -c "BEGIN;
+             SET LOCAL log_statement = 'none';
+             CREATE ROLE {{ bkp_usr }} WITH LOGIN REPLICATION password '{{ bkp_usr_pwd }}';
+             GRANT USAGE ON SCHEMA pg_catalog TO {{ bkp_usr }};
+             GRANT EXECUTE ON FUNCTION pg_catalog.current_setting(text) TO {{ bkp_usr }};
+             GRANT EXECUTE ON FUNCTION pg_catalog.pg_is_in_recovery() TO {{ bkp_usr }};
+             GRANT EXECUTE ON FUNCTION pg_catalog.pg_start_backup(text, boolean, boolean) TO {{ bkp_usr }};
+             GRANT EXECUTE ON FUNCTION pg_catalog.pg_stop_backup(boolean, boolean) TO {{ bkp_usr }};
+             GRANT EXECUTE ON FUNCTION pg_catalog.pg_create_restore_point(text) TO {{ bkp_usr }};
+             GRANT EXECUTE ON FUNCTION pg_catalog.pg_switch_wal() TO {{ bkp_usr }};
+             GRANT EXECUTE ON FUNCTION pg_catalog.pg_last_wal_replay_lsn() TO {{ bkp_usr }};
+             GRANT EXECUTE ON FUNCTION pg_catalog.txid_current() TO {{ bkp_usr }};
+             GRANT EXECUTE ON FUNCTION pg_catalog.txid_current_snapshot() TO {{ bkp_usr }};
+             GRANT EXECUTE ON FUNCTION pg_catalog.txid_snapshot_xmax(txid_snapshot) TO {{ bkp_usr }};
+             GRANT EXECUTE ON FUNCTION pg_catalog.pg_control_checkpoint() TO {{ bkp_usr }};
+             COMMIT;"
+  when: pg_version != "9.6"
+
+- name: Create /home/{{ os_pg_owner }}/.pgpass file
+  become: yes
+  become_user: "{{ os_pg_owner }}"
+  shell:
+    echo "{{ ansible_fqdn }}:{{ pg_port }}:replication:{{ bkp_usr }}:{{ bkp_usr_pwd }}" >> /home/{{ os_pg_owner }}/.pgpass &&
+    echo "{{ ansible_fqdn }}:{{ pg_port }}:{{ bkp_db_name }}:{{ bkp_usr }}:{{ bkp_usr_pwd }}" >> /home/{{ os_pg_owner }}/.pgpass &&
+    chmod 600 /home/{{ os_pg_owner }}/.pgpass
+
+- name: Add parameters to postgresql.conf
+  become: yes
+  become_user: "{{ os_pg_owner }}"
+  shell: |
+    cat <<EOT >> {{ os_pg_data }}/custom.conf
+
+    ##
+    ## pg_probackup
+    ##
+
+    archive_command = 'pg_probackup-{{ pg_version }} archive-push -B {{ bkp_dir }}/pg_probackup/{{ bkp_instance_name }} --instance {{ bkp_instance_name }} --wal-file-path=%p --wal-file-name=%f --compress --overwrite -j 4 --batch-size=100'
+    archive_mode = 'on'
+    archive_timeout = '180'
+    EOT
+
+- name: Add info to pg_hba.conf
+  become: yes
+  become_user: "{{ os_pg_owner }}"
+  shell: |
+    cat <<EOT >> {{ os_pg_data }}/pg_hba.conf
+    host                 {{ bkp_db_name }}               {{ bkp_usr }}         0.0.0.0/0             md5
+    host                 replication             {{ bkp_usr }}         0.0.0.0/0             md5
+    EOT
+
+- name: Update /home/{{ os_pg_owner }}/.pg.env file
+  become: yes
+  become_user: "{{ os_pg_owner }}"
+  shell: |
+    cat <<EOT >> /home/{{ os_pg_owner }}/.pg.env
+
+    ##
+    ## pg_probackup
+    ##
+
+    export BACKUP_PATH={{ bkp_dir }}/pg_probackup/{{ bkp_instance_name }}
+    alias pg_probackup='pg_probackup-{{ pg_version }}'
+    alias pgpbconf='pg_probackup show-config -B {{ bkp_dir }}/pg_probackup/{{ bkp_instance_name }} --instance {{ bkp_instance_name }}'
+    alias pgpbshow='pg_probackup show -B {{ bkp_dir }}/pg_probackup/{{ bkp_instance_name }}'
+    alias pgpblog='view /home/{{ os_pg_owner }}/dba/logs/pg_probackup_script.log'
+    alias pgpblogtail='tail -100f /home/{{ os_pg_owner }}/dba/logs/pg_probackup_script.log'
+    EOT
+
+- name: Init {{ bkp_dir }}/pg_probackup/{{ bkp_instance_name }} directory
+  become: yes
+  become_user: "{{ os_pg_owner }}"
+  shell: |
+    pg_probackup-{{ pg_version }} init -B {{ bkp_dir }}/pg_probackup/{{ bkp_instance_name }}
+
+- name: Add current PostgreSQL instance to pg_probackup
+  become: yes
+  become_user: "{{ os_pg_owner }}"
+  shell: |
+    pg_probackup-{{ pg_version }} add-instance --instance={{ bkp_instance_name }} -B {{ bkp_dir }}/pg_probackup/{{ bkp_instance_name }} -D {{ os_pg_data }}
+
+- name: Correct pg_probackup settings for {{ bkp_instance_name }} instance
+  become: yes
+  become_user: "{{ os_pg_owner }}"
+  shell: |
+    pg_probackup-{{ pg_version }} set-config -B {{ bkp_dir }}/pg_probackup/{{ bkp_instance_name }} --instance={{ bkp_instance_name }} --retention-window=7 --retention-redundancy=2 &&
+    pg_probackup-{{ pg_version }} set-config -B {{ bkp_dir }}/pg_probackup/{{ bkp_instance_name }} --instance={{ bkp_instance_name }} --pguser={{ bkp_usr }} --pgdatabase={{ bkp_db_name }} --log-filename=pg_probackup.log --log-level-file=log --log-directory=/home/{{ os_pg_owner }}/dba/logs
+
+- name: Copy pg_probackup.sh script
+  become: yes
+  become_user: "{{ os_pg_owner }}"
+  template:
+    src: "pg_probackup.j2"
+    dest: "/home/{{ os_pg_owner }}/dba/scripts/pg_probackup.sh"
+    mode: '0700'
+
+- name: Schedule pg_probackup.sh script in cron
+  become: yes
+  become_user: "{{ os_pg_owner }}"
+  cron:
+    name: "{{ item.name }}"
+    minute: "{{ item.minute }}"
+    hour: "{{ item.hour }}"
+    weekday: "{{ item.weekday }}"
+    job: "{{ item.job }}"
+    state: present
+  with_items:
+    - { name: "FULL backup using pg_probackup",
+        minute: "30",
+        hour: "00",
+        weekday: "6",
+        job: "/home/{{ os_pg_owner }}/dba/scripts/pg_probackup.sh {{ bkp_dir }}/pg_probackup/{{ bkp_instance_name }} {{ bkp_instance_name }} 4 FULL >> /home/{{ os_pg_owner }}/dba/logs/pg_probackup_script.log 2>&1 &" }
+    - { name: "Incremental backup using pg_probackup",
+        minute: "05",
+        hour: "*",
+        weekday: "*",
+        job: "/home/{{ os_pg_owner }}/dba/scripts/pg_probackup.sh {{ bkp_dir }}/pg_probackup/{{ bkp_instance_name }} {{ bkp_instance_name }} 4 DELTA >> /home/{{ os_pg_owner }}/dba/logs/pg_probackup_script.log 2>&1 &" }
+
+- name: Restart PostgreSQL instance
+  service:
+    name: postgresql.service
+    state: restarted

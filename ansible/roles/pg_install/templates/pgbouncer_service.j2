@@ -1,0 +1,20 @@
+[Unit]
+Description=A lightweight connection pooler for PostgreSQL
+After=postgresql.service
+
+[Service]
+Type=forking
+User={{ os_pg_owner }}
+Group=postgres
+
+PermissionsStartOnly=true
+ExecStartPre=/usr/bin/mkdir -p /var/run/pgbouncer
+ExecStartPre=/usr/bin/chown -R {{ os_pg_owner }}:postgres /var/run/pgbouncer
+
+ExecStart=/bin/pgbouncer -d /etc/pgbouncer/pgbouncer.ini
+ExecReload=/bin/kill -SIGHUP $MAINPID
+PIDFile=/var/run/pgbouncer/pgbouncer.pid
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

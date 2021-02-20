@@ -1,0 +1,15 @@
+---
+- name: PostgreSQL Installation
+  hosts: db_pg_install
+  become: yes
+  vars_files:
+    - "/etc/ansible/playbooks/postgresql_install/vars.yml"
+
+  pre_tasks:
+    - name: Check Linux distribution
+      fail:
+        msg: "This playbook supports only RedHat R7, R8 family systems, but target server os family is {{ ansible_facts['os_family'] }} Release {{ ansible_facts['distribution_major_version'] }}"
+      when: ansible_facts['os_family'] != 'RedHat' or ansible_facts['distribution_major_version'] | int < 7
+
+  roles:
+    - role: pg_install

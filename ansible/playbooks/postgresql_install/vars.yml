@@ -1,0 +1,56 @@
+---
+#----------------------
+# Control flags
+#----------------------
+
+is_storage_setup_required               : true
+is_server_setup_required                : true
+is_postgresql_software_setup_required   : true
+is_postgresql_initdb_required           : true
+is_postgresql_db_creation_required      : true
+is_pgbouncer_setup_required             : true
+is_pgdumpall_setup_required             : true
+is_pgprobackup_setup_required           : true
+
+#----------------------
+# Parameters
+#----------------------
+
+device_name                : /dev/sdb
+partition_number           : 1
+lvm_volume_group_name      : pgvg
+lvm_volumes_info:
+  postgres                 : [/pgdata, 20g, xfs]
+
+os_pg_owner                : "postgres"
+os_pg_owner_pwd            : "OSuserPassw0rd"
+os_pg_data                 : "/pgdata/{{ pg_version }}/data"
+os_pg_logs                 : "/pgdata/{{ pg_version }}/logs"
+os_pg_tablespaces          : "/pgdata/{{ pg_version }}/ts"
+
+pg_autostart               : true
+pg_version                 : "11"                                # Available options: 9.6, 10, 11, 12, 13
+pg_superuser_pwd           : "DBuserPassw0rd"
+pg_port                    : "5432"
+pg_timezone                : "Europe/Moscow"
+pg_locale                  : "en_US.UTF-8"
+pg_encoding                : "UTF8"
+pg_datestyle               : "iso, mdy"
+pg_lc_messages             : "en_US.utf8"
+pg_lc_monetary             : "en_US.utf8"
+pg_lc_numeric              : "en_US.utf8"
+pg_lc_time                 : "en_US.utf8"
+
+db_name                    : "apps_db"
+db_tablespaces             : [apps_ts_data, apps_ts_idx]
+db_schema                  : "apps"
+db_user                    : "apps_usr"
+db_user_pwd                : "AppsDBuserPassw0rd"
+
+pg_bouncer_port            : "6543"
+
+bkp_dir                    : "/home/postgres/bkp"
+bkp_db_name                : "backup_db"
+bkp_usr                    : "backup_usr"
+bkp_usr_pwd                : "BkpDBuserPassw0rd"
+bkp_instance_name          : "pg_local"

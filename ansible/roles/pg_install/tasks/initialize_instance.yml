@@ -1,0 +1,153 @@
+---
+- name: Create /home/{{ os_pg_owner }}/.pg.env file
+  become: yes
+  become_user: "{{ os_pg_owner }}"
+  template:
+    src: "pg_env.j2"
+    dest: "/home/{{ os_pg_owner }}/.pg.env"
+    mode: '0600'
+
+- name: Create /home/{{ os_pg_owner }}/.psqlrc file
+  become: yes
+  become_user: "{{ os_pg_owner }}"
+  template:
+    src: "psqlrc.j2"
+    dest: "/home/{{ os_pg_owner }}/.psqlrc"
+    mode: '0600'
+
+- name: Create directories for DBA scripts and logs
+  become: yes
+  become_user: "{{ os_pg_owner }}"
+  file:
+    path: "{{ item }}"
+    state: directory
+    recurse: yes
+    mode: '0775'
+  with_items:
+    - "/home/{{ os_pg_owner }}/dba/scripts"
+    - "/home/{{ os_pg_owner }}/dba/logs"
+
+- name: Copy DBA scripts
+  copy:
+    src: "{{ item }}"
+    dest: "/home/{{ os_pg_owner }}/dba/scripts"
+    owner: "{{ os_pg_owner }}"
+    mode: 0700
+  with_fileglob:
+    - "{{ role_path }}/files/dba_scripts/*"
+
+- name: Initialize PostgreSQL cluster
+  become: yes
+  become_user: "{{ os_pg_owner }}"
+  shell: |
+    source /home/{{ os_pg_owner}}/.pg.env &&
+    initdb --data-checksums --locale='{{ pg_locale }}' --encoding='{{ pg_encoding }}' -D {{ os_pg_data }}
+
+- name: Backup original config files
+  become: yes
+  become_user: "{{ os_pg_owner }}"
+  shell: |
+    mv "{{ os_pg_data }}/postgresql.conf" "{{ os_pg_data }}/postgresql.conf_original" &&
+    mv "{{ os_pg_data }}/pg_hba.conf" "{{ os_pg_data }}/pg_hba.conf_original"
+
+- name: Copy postgresql.conf
+  become: yes
+  become_user: "{{ os_pg_owner }}"
+  template:
+    src: "postgresql.j2"
+    dest: "{{ os_pg_data }}/postgresql.conf"
+    mode: '0600'
+
+- name: Copy custom.conf
+  become: yes
+  become_user: "{{ os_pg_owner }}"
+  template:
+    src: "custom_96.j2"
+    dest: "{{ os_pg_data }}/custom.conf"
+    mode: '0600'
+  when: pg_version == "9.6"
+
+- name: Copy custom.conf
+  become: yes
+  become_user: "{{ os_pg_owner }}"
+  template:
+    src: "custom_10_11_12.j2"
+    dest: "{{ os_pg_data }}/custom.conf"
+    mode: '0600'
+  when: pg_version == "10" or pg_version == "11" or pg_version == "12"
+
+- name: Copy custom.conf
+  become: yes
+  become_user: "{{ os_pg_owner }}"
+  template:
+    src: "custom_13.j2"
+    dest: "{{ os_pg_data }}/custom.conf"
+    mode: '0600'
+  when: pg_version == "13"
+
+- name: Copy pg_hba.conf
+  become: yes
+  become_user: "{{ os_pg_owner }}"
+  template:
+    src: "pg_hba.j2"
+    dest: "{{ os_pg_data }}/pg_hba.conf"
+    mode: '0600'
+
+- name: Copy PostgreSQL system service file
+  template:
+    src: "postgresql_service.j2"
+    dest: "/etc/systemd/system/postgresql.service"
+    mode: '0644'
+
+- name: Enable PostgreSQL service
+  service:
+    name: postgresql.service 
+    enabled: yes
+  when:
+    pg_autostart|bool
+
+- name: Start PostgreSQL
+  service:
+    name: postgresql.service
+    state: started
+
+- name: Change postgres superuser password
+  become: yes
+  become_user: "{{ os_pg_owner }}"
+  shell: |
+    psql -c "BEGIN;
+             SET LOCAL log_statement = 'none';
+             alter user postgres with password '{{ pg_superuser_pwd }}';
+             COMMIT;"
+
+- name: Create pg_stat_statements extension and load auto_explain
+  become: yes
+  become_user: "{{ os_pg_owner }}"
+  shell: |
+    psql -c "create extension pg_stat_statements;" &&
+    psql -c "load 'auto_explain';"
+
+- name: Copy cleanup_logs.sh script
+  become: yes
+  become_user: "{{ os_pg_owner }}"
+  template:
+    src: "cleanup_logs.j2"
+    dest: "/home/{{ os_pg_owner }}/dba/scripts/cleanup_logs.sh"
+    mode: '0700'
+
+- name: Schedule cron script to cleanup PostgreSQL log files
+  become: yes
+  become_user: "{{ os_pg_owner }}"
+  cron:
+    name: "{{ item.name }}"
+    minute: "{{ item.minute }}"
+    hour: "{{ item.hour }}"
+    weekday: "{{ item.weekday }}"
+    job: "{{ item.job }}"
+    state: present
+  with_items:
+    - { name: "Remove PostgreSQL log files",
+        minute: "05",
+        hour: "00",
+        weekday: "*",
+        job: "/home/{{ os_pg_owner }}/dba/scripts/cleanup_logs.sh >> /home/{{ os_pg_owner }}/dba/logs/cleanup_logs.log 2>&1 &" }

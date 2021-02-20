@@ -1,0 +1,54 @@
+---
+- name: Create {{ db_user }} database user
+  become: yes
+  become_user: "{{ os_pg_owner }}"
+  shell: |
+    psql -c "BEGIN;
+             SET LOCAL log_statement = 'none';
+             create user {{ db_user }} with password '{{ db_user_pwd }}' login createrole nosuperuser noinherit noreplication nobypassrls;
+             COMMIT;"
+
+- name: Create directories for tablespace(s)
+  become: yes
+  become_user: "{{ os_pg_owner }}"
+  file:
+    path: "{{ os_pg_tablespaces }}/{{db_name}}_{{ item }}"
+    state: directory
+    recurse: yes
+    mode: '0700'
+  with_items:
+    - "{{ db_tablespaces }}"
+
+- name: Create tablespace(s)
+  become: yes
+  become_user: "{{ os_pg_owner }}"
+  shell: |
+    psql -c "create tablespace {{ item }} owner {{ db_user }} location '{{ os_pg_tablespaces }}/{{ db_name }}_{{ item }}';"
+  with_items:
+    - "{{ db_tablespaces }}"
+
+- name: Provide grants on tablespace(s)
+  become: yes
+  become_user: "{{ os_pg_owner }}"
+  shell: |
+    psql -c "grant create on tablespace {{ item }} to {{ db_user }};"
+  with_items:
+    - "{{ db_tablespaces }}"
+
+- name: Create database {{ db_name }}
+  become: yes
+  become_user: "{{ os_pg_owner }}"
+  shell: |
+    psql -c "create database {{ db_name }} with owner={{ db_user }} tablespace={{ db_tablespaces[0] }};"
+
+- name: Create schema {{ db_schema }} in {{ db_name }} database
+  become: yes
+  become_user: "{{ os_pg_owner }}"
+  shell: |
+    psql -d {{ db_name }} -c "create schema {{ db_schema }} authorization {{ db_user}};"
+
+- name: Set search_path to schema "{{ db_schema }}" for "{{ db_user }}" user
+  become: yes
+  become_user: "{{ os_pg_owner }}"
+  shell: |
+    psql -d {{ db_name }} -c "alter role {{ db_user }} set search_path to {{ db_schema }};"

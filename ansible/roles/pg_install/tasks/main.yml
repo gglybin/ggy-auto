@@ -1,0 +1,32 @@
+---
+- name: "############## Storage Setup ##############"
+  include_tasks: storage.yml
+  when: is_storage_setup_required|bool
+
+- name: "############## Server Setup ##############"
+  include_tasks: server.yml
+  when: is_server_setup_required|bool
+
+- name: "############## PostgreSQL Software Setup ##############"
+  include_tasks: software.yml
+  when: is_postgresql_software_setup_required|bool
+
+- name: "############## Initialize PostgreSQL Instance ##############"
+  include_tasks: initialize_instance.yml
+  when: is_postgresql_initdb_required|bool
+
+- name: ############## Create Database ##############"
+  include_tasks: create_db.yml
+  when: is_postgresql_db_creation_required|bool
+
+- name: "############## pgBouncer Setup ##############"
+  include_tasks: pgbouncer.yml
+  when: is_pgbouncer_setup_required|bool
+
+- name: "############## Logical Backup Setup (pg_dumpall) ##############"
+  include_tasks: pg_dumpall.yml
+  when: is_pgdumpall_setup_required|bool
+
+- name: "############## Binary Backup Setup (pg_probackup) ##############"
+  include_tasks: pg_probackup.yml
+  when: is_pgprobackup_setup_required|bool

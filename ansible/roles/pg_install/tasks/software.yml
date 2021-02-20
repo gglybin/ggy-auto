@@ -1,0 +1,22 @@
+---
+- name: Create directory for PostgreSQL RPM packages
+  file:
+    path: "/home/{{ os_pg_owner }}/dba/soft/postgresql_rpm"
+    state: directory
+    recurse: yes
+    owner: "{{ os_pg_owner }}"
+    group: postgres
+    mode: '0775'
+
+- name: Copy PostgreSQL RPM packages
+  copy:
+    src: "{{ item }}"
+    dest: "/home/{{ os_pg_owner }}/dba/soft/postgresql_rpm/"
+    owner: "{{ os_pg_owner }}"
+    mode: 0775
+  with_fileglob:
+    - "{{ role_path }}/files/{{ ansible_facts['distribution_major_version'] }}/{{ pg_version }}/*"
+
+- name: Install PostgreSQL packages
+  shell:
+    cmd: "yum -y localinstall /home/{{ os_pg_owner }}/dba/soft/postgresql_rpm/*"
