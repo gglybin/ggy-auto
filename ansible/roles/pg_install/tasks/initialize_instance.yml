@@ -62,28 +62,9 @@
   become: yes
   become_user: "{{ os_pg_owner }}"
   template:
-    src: "custom_96.j2"
+    src: "custom.j2"
     dest: "{{ os_pg_data }}/custom.conf"
     mode: '0600'
-  when: pg_version == "9.6"
-
-- name: Copy custom.conf
-  become: yes
-  become_user: "{{ os_pg_owner }}"
-  template:
-    src: "custom_10_11_12.j2"
-    dest: "{{ os_pg_data }}/custom.conf"
-    mode: '0600'
-  when: pg_version == "10" or pg_version == "11" or pg_version == "12"
-
-- name: Copy custom.conf
-  become: yes
-  become_user: "{{ os_pg_owner }}"
-  template:
-    src: "custom_13.j2"
-    dest: "{{ os_pg_data }}/custom.conf"
-    mode: '0600'
-  when: pg_version == "13"
 
 - name: Copy pg_hba.conf
   become: yes
