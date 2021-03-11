@@ -1,0 +1,128 @@
+#####################################
+## Connecting
+#####################################
+
+ssl                       = 'off'
+port                      = '{{ pg_port }}'
+listen_addresses          = '*'
+max_connections           = '300'
+max_prepared_transactions = '300'
+unix_socket_directories   = '/var/run/postgresql, /tmp'
+
+#####################################
+## Common:
+#####################################
+
+hba_file                  = '{{ os_pg_data }}/pg_hba.conf'
+ident_file                = '{{ os_pg_data }}/pg_ident.conf'
+timezone                  = '{{ pg_timezone }}'
+datestyle                 = '{{ pg_datestyle }}'
+lc_messages               = '{{ pg_lc_messages }}'
+lc_monetary               = '{{ pg_lc_monetary }}'
+lc_numeric                = '{{ pg_lc_numeric }}'
+lc_time                   = '{{ pg_lc_time }}'
+
+#####################################
+## Memory
+#####################################
+
+shared_buffers       = '{{ (ansible_memtotal_mb * 0.25) | round | int | abs }}MB'
+work_mem             = '{{ ((ansible_memtotal_mb * 0.25) / 300) | round | int | abs }}MB'
+maintenance_work_mem = '{{ (ansible_memtotal_mb * 0.05) | round | int | abs }}MB'
+effective_cache_size = '{{ (ansible_memtotal_mb * 0.5) | round | int | abs }}MB'
+wal_buffers          = '16MB'
+
+#####################################
+## Disk
+#####################################
+
+fsync                        = 'on'
+synchronous_commit           = 'on'
+full_page_writes             = 'on'
+checkpoint_completion_target = '0.9'
+checkpoint_timeout           = '1800'
+effective_io_concurrency     = '300'
+
+#####################################
+## PITR / Replication
+#####################################
+
+hot_standby                  = 'on'
+{% if pg_version == "13" %}
+wal_keep_size                = '128MB'
+{% else %}
+wal_keep_segments            = '8'
+{% endif %}
+wal_level                    = 'replica'
+wal_log_hints                = 'on'
+wal_receiver_status_interval = '1s'
+wal_sync_method              = 'fsync'
+max_replication_slots        = '10'
+max_standby_archive_delay    = '30s'
+max_standby_streaming_delay  = '30s'
+max_wal_senders              = '10'
+max_wal_size                 = '4GB'
+max_worker_processes         = '8'
+min_wal_size                 = '1GB'
+
+#####################################
+## Planner
+#####################################
+
+random_page_cost                = '2'
+lock_timeout                    = '600000'   # 10 min
+default_statistics_target       = '100'
+max_locks_per_transaction       = '64'
+{% if pg_version != "9.6" %}
+max_parallel_workers            = '4'
+{% endif %}
+max_parallel_workers_per_gather = '2'
+
+#####################################
+## Logging
+#####################################
+
+log_timezone               = '{{ pg_timezone }}'
+log_checkpoints            = 'True'
+log_connections            = 'True'
+log_disconnections         = 'True'
+log_destination            = 'stderr'
+log_directory              = '{{ os_pg_logs }}'
+log_file_mode              = '0644'
+log_filename               = 'postgresql-%Y-%m-%d.log'
+log_line_prefix            = '%t [%p]: [%l-1] app=%a,user=%u,db=%d,client=%h '
+log_lock_waits             = 'on'
+log_min_duration_statement = '5000'
+log_min_error_statement    = 'WARNING'
+log_replication_commands   = 'on'
+log_rotation_age           = '1440'
+log_rotation_size          = '1GB'
+log_statement              = 'mod'
+log_temp_files             = '0'
+log_truncate_on_rotation   = 'True'
+logging_collector          = 'True'
+
+#####################################
+## Autovacuum
+#####################################
+
+autovacuum                      = 'on'
+autovacuum_work_mem             = '-1'
+autovacuum_vacuum_scale_factor  = '0.1'
+autovacuum_analyze_scale_factor = '0.3'
+
+#####################################
+## For Perf Extensions
+#####################################
+
+shared_preload_libraries         = 'auto_explain,pg_stat_statements'
+pg_stat_statements.max           = '10000'
+pg_stat_statements.track         = 'all'
+pg_stat_statements.track_utility = 'on'
+pg_stat_statements.save          = 'off'
+track_io_timing                  = 'on'
+track_activity_query_size        = '32768'
+track_commit_timestamp           = 'off'
+log_min_duration_statement       = '5000'
+auto_explain.log_min_duration    = '5000'
+auto_explain.log_analyze         = 'on'
