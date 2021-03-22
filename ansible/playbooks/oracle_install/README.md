@@ -67,11 +67,11 @@ Copy roles and playbook folders to your ansible server from GitHub as it is.
 
 ### Step 5: Copy Oracle Home zip
 
-You have to copy real Oracle Home archive into `/etc/asnible/roles/db_software_setup/files` folder or create symbolic link.
+You have to copy real Oracle Home archive into `/etc/ansible/roles/ora_install/files` folder or create symbolic link.
 
-Please review additional instructions in file `/etc/asnible/roles/db_software_setup/files/LINUX.X64_193000_db_home.zip`.
+Please review additional instructions in file `/etc/ansible/roles/ora_install/files/LINUX.X64_193000_db_home.zip`.
 
-It's not an archive, so you can open it as regular file `view /etc/asnible/roles/db_software_setup/files/LINUX.X64_193000_db_home.zip` and review details.
+It's not an archive, so you can open it as regular file `view /etc/ansible/roles/ora_install/files/LINUX.X64_193000_db_home.zip` and review details.
 
 ### Step 6: Check free space on "remote_tmp" directory
 
