@@ -1,0 +1,25 @@
+##
+## Note: This is not true Oracle Home archive. Place real Database Oracle Home archive to this location please.
+##
+##        You archive should have all necessary files and folders packaged in below manner:
+## 
+##        GOOD:  LINUX.X64_193000_db_home.zip|
+## 	                                          |-dbs/
+## 	                                          |-network/
+## 										                        |... others
+## 										   
+##        BAD:   LINUX.X64_193000_db_home.zip|
+## 	                                          |-dbhome/
+## 										                                |-dbs/
+## 												                            |-network/
+## 												                            |... others
+##
+##
+## Download:
+##
+##        https://www.oracle.com/database/technologies/oracle19c-linux-downloads.html
+##
+## Example on how to prepare(zip) existing Oracle Home for this playbook:
+##
+##        cd $ORACLE_HOME && zip --symlinks -r /home/oracle/LINUX.X64_193000_db_home.zip *
+##        

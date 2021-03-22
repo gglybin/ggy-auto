@@ -1,0 +1,403 @@
+##
+## Oracle Instance
+##
+
+export ORACLE_BASE={{ oracle_base }}
+export ORACLE_HOME={{ oracle_home }}
+export ORACLE_SID={{ ora_db_sid  }}
+export NLS_LANG=AMERICAN_AMERICA.UTF8
+export LD_LIBRARY_PATH=$ORACLE_HOME/lib
+export PATH=$PATH:$HOME/.local/bin:$HOME/bin:/sbin/:$ORACLE_HOME/bin:$ORACLE_HOME/OPatch
+export LIBPATH=$ORACLE_HOME/lib:$PATH
+export PS1='\[\033[0;32m\]$ORACLE_SID> \[\033[0;33m\]\u@\h\[\033[00m\] [\t] \w]\$ '
+
+##
+## DBA Tools
+##
+
+alias rman="rlwrap ${ORACLE_HOME}/bin/rman"
+alias sp="rlwrap ${ORACLE_HOME}/bin/sqlplus / as sysdba"
+alias sp2="rlwrap ${ORACLE_HOME}/bin/sqlplus / as sysdba @/home/{{ os_db_owner }}/dba/scripts/.tools/sp2.sql"
+alias cdob="cd ${ORACLE_BASE}"
+alias cdoh="cd ${ORACLE_HOME}"
+alias cddbs="cd ${ORACLE_HOME}/dbs"
+alias cdtns="cd ${ORACLE_HOME}/network/admin"
+alias allog='view {{ oracle_base }}/diag/rdbms/{{ ora_db_name|lower }}/{{ ora_db_sid }}/trace/alert_{{ ora_db_sid }}.log'
+alias allogtail='tail -200f {{ oracle_base }}/diag/rdbms/{{ ora_db_name|lower }}/{{ ora_db_sid }}/trace/alert_{{ ora_db_sid }}.log'
+alias allogerr="tail -1000f {{ oracle_base }}/diag/rdbms/{{ ora_db_name|lower }}/{{ ora_db_sid }}/trace/alert_{{ ora_db_sid }}.log | egrep -i 'WARN|ERR|FAIL|ORA-|AC-|RC-'"
+alias hist_cleanup='cat /dev/null > ~/.rman_history && cat /dev/null > ~/.sqlplus_history && cat /dev/null > ~/.bash_history && history -c'
+
+# General
+
+param_info() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/param_info.sql ${1}
+exit;
+EOF
+}
+
+patch_lvl() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/upg_patch_info.sql
+exit;
+EOF
+}
+
+tz_check() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/time_zone_check.sql
+exit;
+EOF
+}
+
+nls_check() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/nls_check.sql
+exit;
+EOF
+}
+
+comp_info() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/comp_info.sql
+exit;
+EOF
+}
+
+# Storage
+
+db_size() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/db_size.sql
+exit;
+EOF
+}
+
+data_tops() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/data_tops.sql
+exit;
+EOF
+}
+
+tbs_info() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/tbs_info.sql ${1}
+exit;
+EOF
+}
+
+tbs_temp() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/tbs_temp_info.sql
+exit;
+EOF
+}
+
+tbs_undo() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/tbs_undo_info.sql
+exit;
+EOF
+}
+
+tbs_usage_all() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/tbs_usage_info_all.sql
+exit;
+EOF
+}
+
+tbs_usage_all2() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/tbs_usage_info_all2.sql
+exit;
+EOF
+}
+
+redo_check() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/redo_status_size_info.sql
+exit;
+EOF
+}
+
+# Objects
+
+db_links() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/db_links_info.sql
+exit;
+EOF
+}
+
+db_dirs() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/dirs_info.sql
+exit;
+EOF
+}
+
+find_object() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/find_object.sql ${1}
+exit;
+EOF
+}
+
+invalid_objects() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/invalid_objects.sql
+exit;
+EOF
+}
+
+get_ddl() {
+sqlplus -s / as sysdba @/home/{{ os_db_owner }}/dba/scripts/.tools/get_ddl.sql
+}
+
+table_info() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/table_info.sql ${1} ${2}
+exit;
+EOF
+}
+
+dba_jobs() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/dba_jobs.sql
+exit;
+EOF
+}
+
+dba_jobs_run() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/dba_jobs_running.sql
+exit;
+EOF
+}
+
+dba_sch_jobs() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/dba_sch_jobs.sql
+exit;
+EOF
+}
+
+dba_sch_jobs_run() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/dba_sch_jobs_running.sql
+exit;
+EOF
+}
+
+find_job() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/find_job.sql ${1}
+exit;
+EOF
+}
+
+maintenance_tasks() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/maintenance_tasks.sql
+exit;
+EOF
+}
+
+# Users/Sessions
+
+find_user() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/find_user.sql ${1}
+exit;
+EOF
+}
+
+user_info() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/user_info.sql ${1}
+exit;
+EOF
+}
+
+role_info() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/role_info.sql ${1}
+exit;
+EOF
+}
+
+profile_info() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/profile_info.sql ${1}
+exit;
+EOF
+}
+
+sess_info() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/sess_info.sql ${1} ${2}
+exit;
+EOF
+}
+
+sess_info_all() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/sess_info_all.sql
+exit;
+EOF
+}
+
+sess_info_by_user() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/sess_info_by_user.sql ${1}
+exit;
+EOF
+}
+
+sess_info_by_pga() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/sess_info_by_pga_usage.sql
+exit;
+EOF
+}
+
+sess_info_by_temp() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/sess_info_by_temp_used.sql
+exit;
+EOF
+}
+
+sess_info_by_undo() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/sess_info_by_undo_used.sql
+exit;
+EOF
+}
+
+sess_info_by_sqlid() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/sess_info_by_sql_id.sql ${1}
+exit;
+EOF
+}
+
+sess_audit_trail() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/sess_audit_trail.sql
+exit;
+EOF
+}
+
+block_sess() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/block_sess.sql
+exit;
+EOF
+}
+
+block_sess_tree() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/block_sess_tree.sql
+exit;
+EOF
+}
+
+# RMAN
+
+rman_oper() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/rman_oper.sql
+exit;
+EOF
+}
+
+# Data Guard
+
+dg_info() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/dataguard_info.sql          # primary/standby
+exit;
+EOF
+}
+
+prim_seq_gen() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/prim_seq_gen.sql            # primary
+exit;
+EOF
+}
+
+rec_proc_status(){
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/recovery_proc_status.sql    # standby
+exit;
+EOF
+}
+
+lag_time() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/stby_lag_time.sql           # standby
+exit;
+EOF
+}
+
+stby_seq_rec_appl() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/stby_seq_rec_appl.sql       # standby
+exit;
+EOF
+}
+
+# Performance
+
+gts() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/gts.sql ${1} ${2}
+exit;
+EOF
+}
+
+locks(){
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/lock_info.sql
+exit;
+EOF
+}
+
+metrics() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/response_time.sql
+exit;
+EOF
+}
+
+redo_stats() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/redo_switches_info.sql
+exit;
+EOF
+}
+
+sess_by_wait() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/sess_by_wait_event.sql ${1}
+exit;
+EOF
+}
+
+waits_info() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/waits_info.sql
+exit;
+EOF
+}
+
+xplan() {
+sqlplus -s / as sysdba <<EOF
+@/home/{{ os_db_owner }}/dba/scripts/.tools/xplan.sql ${1} ${2}
+exit;
+EOF
+}

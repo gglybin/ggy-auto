@@ -1,0 +1,107 @@
+---
+- name: Create Agent Installation directory
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  file:
+    path: "{{ agent_top }}/install/emcli"
+    state: directory
+    recurse: yes
+    owner: "{{ os_db_owner }}"
+    group: oinstall
+    mode: '0775'
+
+- name: Download EM CLI utility jar from OMS
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  shell: |
+    cd {{ agent_top }}/install/emcli &&
+    wget --no-check-certificate {{ oms_em_url }}/public_lib_download/emcli/kit/emcliadvancedkit.jar
+
+- name: Install Java (if not installed yet)
+  yum:
+    name: "{{ pkg_name }}"
+    state: present
+  vars:
+    pkg_name:
+    - java-1.8.0-openjdk
+    - java-1.8.0-openjdk-devel
+
+- name: Install EM CLI
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  no_log: true
+  shell: |
+    java -jar {{ agent_top }}/install/emcli/emcliadvancedkit.jar -install_dir={{ agent_top }}/install/emcli &&
+    {{ agent_top }}/install/emcli/emcli setup -url={{ oms_em_url }} -username={{ oms_adm_usr }} -password={{ oms_adm_usr_pwd }} -trustall -dir={{ agent_top }}/install/emcli &&
+    {{ agent_top }}/install/emcli/emcli sync &&
+    {{ agent_top }}/install/emcli/emcli login -username={{ oms_adm_usr }} -password={{ oms_adm_usr_pwd }} -force
+
+- name: Create directory for Agent Software
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  file:
+    path: "{{ agent_top }}/install/agentInstaller"
+    state: directory
+    recurse: yes
+    owner: "{{ os_db_owner }}"
+    group: oinstall
+    mode: '0775'
+
+- name: Download Agent Software from OMS
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  shell: |
+    {{ agent_top }}/install/emcli/emcli get_agentimage -destination={{ agent_top }}/install/agentInstaller -platform="{{ oms_platform }}" -version="{{ oms_version }}" &&
+    cd {{ agent_top }}/install/agentInstaller && unzip {{ agent_top }}/install/agentInstaller/*.zip
+
+- name: Run agentDeploy.sh script
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  no_log: true
+  shell: |
+    {{ agent_top }}/install/agentInstaller/agentDeploy.sh AGENT_BASE_DIR={{ agent_top }} -ignorePrereqs -invPtrLoc /etc/oraInst.loc AGENT_PORT={{ agent_port }} EM_UPLOAD_PORT={{ oms_upload_port }} OMS_HOST={{ oms_host }} ORACLE_HOSTNAME={{ ansible_fqdn }} AGENT_INSTANCE_HOME={{ agent_top }}/agent_inst AGENT_REGISTRATION_PASSWORD={{ oms_agent_reg_pwd }} SCRATCHPATH={{ agent_top }}
+
+- name: Run root.sh script
+  shell: |
+    {{ agent_top }}/agent_{{ oms_version }}/root.sh &&
+    sleep 5
+
+- name: Add {{ ora_db_sid }} database to OMS monitoring
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  no_log: true
+  shell: |
+    sleep 10 &&
+    {{ agent_top }}/install/emcli/emcli add_target -name="{{ ora_db_sid }}" -type="oracle_database" -host="{{ ansible_fqdn }}" -credentials="UserName:SYS;password:"{{ ora_sys_pwd }}";Role:SYSDBA" -properties="SID:{{ ora_db_sid }};Port:{{ listener_port }};OracleHome:{{ oracle_home }};MachineName:{{ ansible_fqdn }}"
+
+- name: Add {{ listener_name }} listener to OMS monitoring
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  no_log: true
+  shell: |
+    sleep 10 &&
+    {{ agent_top }}/install/emcli/emcli add_target -name="{{ listener_name }}_{{ ansible_fqdn }}" -type="oracle_listener" -host="{{ ansible_fqdn }}" -properties="LsnrName:{{ listener_name }};ListenerOraDir:{{ oracle_home }}/network/admin;Port:{{ listener_port }};OracleHome:{{ oracle_home }};Machine:{{ ansible_fqdn }}"
+
+- name: Create instance environment file (if not exist)
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  file:
+    path: /home/{{ os_db_owner }}/.{{ ora_db_sid }}.env
+    state: touch
+
+- name: Add Agent environment variables to instance environment file
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  shell: |
+    cat <<EOT >> /home/{{ os_db_owner }}/.{{ ora_db_sid }}.env
+
+    ##
+    ## Cloud Control Agent
+    ##
+
+    export AGENT_DIR={{ agent_top }}
+    export AGENT_HOME=\$AGENT_DIR/agent_{{ oms_version }}
+    export AGENT_BIN=\$AGENT_HOME/bin
+    export PATH=\$AGENT_HOME/bin:$PATH
+    alias cdah="cd \${AGENT_HOME}"
+    EOT

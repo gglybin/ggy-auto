@@ -1,0 +1,326 @@
+---
+- name: Create instance environment file
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  template:
+    src: "{{ role_path }}/templates/create_db/ora_env.j2"
+    dest: "/home/{{ os_db_owner }}/.{{ ora_db_sid }}.env"
+
+- name: Copy database parameter file
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  template:
+    src: "{{ role_path }}/templates/create_db/initora.j2"
+    dest: "{{ oracle_home }}/dbs/init{{ ora_db_sid }}.ora"
+
+- name: Copy database creation script
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  template:
+    src: "{{ role_path }}/templates/create_db/create_database.j2"
+    dest: "/home/{{ os_db_owner }}/create_database.sql"
+    mode: '0775'
+
+- name: Create additional directories and set permissions
+  file:
+    path: "{{ item }}"
+    state: directory
+    recurse: yes
+    owner: "{{ os_db_owner }}"
+    group: oinstall
+    mode: '0775'
+  with_items:
+    - "{{ oracle_base }}/admin/{{ ora_db_name|lower }}/adump"
+    - "{{ data_top }}/{{ ora_db_sid }}"
+    - "{{ redo_top }}/{{ ora_db_sid }}"
+    - "{{ oracle_base }}/diag/rdbms/{{ ora_db_name|lower }}/{{ ora_db_sid }}/cdump"
+    - "{{ oracle_base }}"
+    - "{{ arc_top }}/{{ ora_db_sid }}"
+
+- name: INFO
+  debug:
+    msg:
+       - 'Starting database instance creation process. It will take a while ... (~ 50 min)'
+
+- name: Start database in NOMOUNT
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  shell: |
+    export ORACLE_SID={{ ora_db_sid }} &&
+    export ORACLE_HOME={{ oracle_home }} &&
+    export PATH=$ORACLE_HOME:$ORACLE_HOME/bin:$PATH &&
+    sqlplus -s / as sysdba <<EOF
+    create spfile from pfile;
+    startup nomount;
+    exit;
+    EOF
+
+- name: Run create_database.sql script
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  shell: |
+    export ORACLE_SID={{ ora_db_sid }} &&
+    export ORACLE_HOME={{ oracle_home }} &&
+    export PATH=$ORACLE_HOME:$ORACLE_HOME/bin:$PATH &&
+    sqlplus -s / as sysdba @/home/{{ os_db_owner }}/create_database.sql
+
+- name: Copy database catalog scripts
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  template:
+    src: "{{ role_path }}/templates/create_db/catalog.j2"
+    dest: "/home/{{ os_db_owner }}/catalog.sql"
+    mode: '0775'
+
+- name: Run database catalog scripts
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  shell: |
+    export ORACLE_SID={{ ora_db_sid }} &&
+    export ORACLE_HOME={{ oracle_home }} &&
+    export PATH=$ORACLE_HOME:$ORACLE_HOME/bin:$PATH &&
+    sqlplus -s / as sysdba @/home/{{ os_db_owner }}/catalog.sql
+
+- name: Copy database JAVA scripts
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  template:
+    src: "{{ role_path }}/templates/create_db/java.j2"
+    dest: "/home/{{ os_db_owner }}/java.sql"
+    mode: '0775'
+
+- name: Run JAVA install database scripts
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  shell: |
+    export ORACLE_SID={{ ora_db_sid }} &&
+    export ORACLE_HOME={{ oracle_home }} &&
+    export PATH=$ORACLE_HOME:$ORACLE_HOME/bin:$PATH &&
+    sqlplus -s / as sysdba @/home/{{ os_db_owner }}/java.sql
+
+- name: Copy database scripts for optional components
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  template:
+    src: "{{ role_path }}/templates/create_db/optional_components.j2"
+    dest: "/home/{{ os_db_owner }}/optional_components.sql"
+    mode: '0775'
+
+- name: Run database scripts for optional components
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  shell: |
+    export ORACLE_SID={{ ora_db_sid }} &&
+    export ORACLE_HOME={{ oracle_home }} &&
+    export PATH=$ORACLE_HOME:$ORACLE_HOME/bin:$PATH &&
+    sqlplus -s / as sysdba @/home/{{ os_db_owner }}/optional_components.sql
+
+- name: Run datapatch
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  shell: |
+    export ORACLE_SID={{ ora_db_sid }} &&
+    export ORACLE_HOME={{ oracle_home }} &&
+    export PATH=$ORACLE_HOME:$ORACLE_HOME/bin:$PATH &&
+    sqlplus -s / as sysdba <<EOF
+    shu immediate;
+    startup upgrade;
+    exit;
+    EOF
+    {{ oracle_home }}/OPatch/datapatch -verbose &&
+    sqlplus -s / as sysdba <<EOF
+    shu immediate;
+    startup upgrade;
+    exit;
+    EOF
+    sleep 10 &&
+    echo '@{{ oracle_home }}/rdbms/admin/utlrp.sql' | sqlplus -s / as sysdba
+   
+- name: Update /etc/oratab
+  lineinfile:
+    path: "/etc/oratab"
+    line: "{{ ora_db_sid }}:{{ oracle_home }}:N"
+    state: present
+    backup: yes
+
+- name: Create password file
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  no_log: true
+  shell: |
+    export ORACLE_SID={{ ora_db_sid }} &&
+    export ORACLE_HOME={{ oracle_home }} &&
+    export PATH=$ORACLE_HOME:$ORACLE_HOME/bin:$PATH &&
+    orapwd file={{ oracle_home }}/dbs/orapw{{ ora_db_sid }} password={{ ora_sys_pwd }} format=12 force=y
+
+- name: Copy script with additional settings
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  template:
+    src: "{{ role_path }}/templates/create_db/additional_settings.j2"
+    dest: "/home/{{ os_db_owner }}/additional_settings.sql"
+
+- name: Apply additional database settings
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  shell: |
+    export ORACLE_SID={{ ora_db_sid }} &&
+    export ORACLE_HOME={{ oracle_home }} &&
+    export PATH=$ORACLE_HOME:$ORACLE_HOME/bin:$PATH &&
+    sqlplus -s / as sysdba @/home/{{ os_db_owner }}/additional_settings.sql
+
+- name: Update SQL*Plus glogin.sql file
+  lineinfile:
+    path: "{{ oracle_home }}/sqlplus/admin/glogin.sql"
+    line: "{{ item }}"
+    state: present
+    backup: yes
+  with_items:
+    - "SET SQLPROMPT \"_USER'@'_CONNECT_IDENTIFIER > \";"
+    - "SET LINES 400;"
+    - "SET PAGES 1000;"
+    - "SET EXITC OFF;"
+
+- name: Create symbolic link to database alert.log file
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  file:
+    src: "{{ oracle_base }}/diag/rdbms/{{ ora_db_name|lower }}/{{ ora_db_sid }}/trace/alert_{{ ora_db_sid }}.log"
+    dest: "/home/{{ os_db_owner }}/alert_{{ ora_db_sid }}.log"
+    state: link
+
+- name: Start "{{ listener_name }}" database listener
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  shell: |
+    export ORACLE_SID={{ ora_db_sid }} &&
+    export ORACLE_HOME={{ oracle_home }} &&
+    export PATH=$ORACLE_HOME:$ORACLE_HOME/bin:$PATH &&
+    lsnrctl start {{ listener_name }}
+  ignore_errors: True
+
+- name: Create directories for scripts
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  file:
+    path: "{{ item }}"
+    state: directory
+    recurse: yes
+    group: oinstall
+    mode: '0775'
+  with_items:
+    - "/home/{{ os_db_owner }}/dba/scripts/.tools"
+    - "/home/{{ os_db_owner }}/dba/logs"
+
+- name: Copy DBA scripts
+  copy:
+    src: "{{ item }}"
+    dest: "/home/{{ os_db_owner }}/dba/scripts/.tools"
+    owner: "{{ os_db_owner }}"
+    mode: 0700
+  with_fileglob:
+    - "{{ role_path }}/files/dba_scripts/*"
+
+- name: Copy diag files cleanup script
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  template:
+    src: "{{ role_path }}/templates/create_db/ora_cleanup_diag.j2"
+    dest: "/home/{{ os_db_owner }}/dba/scripts/ora_cleanup_diag.sh"
+    mode: '0700'
+
+- name: Schedule cleanup script in {{ os_db_owner }} user crontab
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  cron:
+    name: "{{ item.name }}"
+    minute: "{{ item.minute }}"
+    hour: "{{ item.hour }}"
+    weekday: "{{ item.weekday }}"
+    job: "{{ item.job }}"
+    state: present
+  with_items:
+    - { name: "Remove Oracle Database Diagnostic files",
+        minute: "05",
+        hour: "00",
+        weekday: "*",
+        job: "/home/{{ os_db_owner }}/dba/scripts/ora_cleanup_diag.sh {{ oracle_base }} 7" }
+
+- name: Cleanup
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - "/home/{{ os_db_owner }}/create_database.sql"
+    - "/home/{{ os_db_owner }}/catalog.sql"
+    - "/home/{{ os_db_owner }}/java.sql"
+    - "/home/{{ os_db_owner }}/optional_components.sql"
+    - "/home/{{ os_db_owner }}/additional_settings.sql"
+
+- name: INFO
+  debug:
+    msg:
+       - 'Oracle Database Installation - completed!'
+
+- name: INFO
+  debug:
+    msg: Enable Oracle Database Instance Autostart
+  when: ora_autostart|bool
+
+- name: Shutdown Oracle Database Instance
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  shell: |
+    export ORACLE_SID={{ ora_db_sid }} &&
+    export ORACLE_HOME={{ oracle_home }} &&
+    export PATH=$ORACLE_HOME:$ORACLE_HOME/bin:$PATH &&
+    sqlplus -s / as sysdba <<EOF
+    shu immediate;
+    exit;
+    EOF
+  when: ora_autostart|bool
+
+- name: Copy systemd service file
+  template:
+    src: "{{ role_path }}/templates/create_db/oracle_service.j2"
+    dest: "/etc/systemd/system/oradb-{{ ora_db_sid|lower }}.service"
+    mode: '0644'
+  when: ora_autostart|bool
+
+- name: Copy Oracle Management script
+  copy:
+    src: "oramgmt.sh"
+    dest: "/usr/bin/oramgmt.sh"
+    owner: "{{ os_db_owner }}"
+    group: oinstall
+    mode: '0700'
+  when: ora_autostart|bool
+
+- name: Add info to sudoers file
+  lineinfile:
+    path: /etc/sudoers
+    state: present
+    insertafter: '^#includedir /etc/sudoers.d'
+    line: '{{ os_db_owner }}  ALL=(ALL)       NOPASSWD:
+      /usr/bin/systemctl stop oradb-{{ ora_db_sid|lower }}.service,
+      /usr/bin/systemctl start oradb-{{ ora_db_sid|lower }}.service,
+      /usr/bin/systemctl restart oradb-{{ ora_db_sid|lower }}.service,
+      /usr/bin/systemctl status oradb-{{ ora_db_sid|lower }}.service,
+      /usr/bin/systemctl status oradb-{{ ora_db_sid|lower }}.service -l,
+      /usr/bin/systemctl daemon-reload,
+      /bin/journalctl'
+    validate: /usr/sbin/visudo -cf %s
+  when: ora_autostart|bool
+
+- name: Enable Oracle Database Instance service
+  systemd:
+    name: oradb-{{ ora_db_sid|lower }}.service
+    daemon-reload: yes
+    enabled: yes
+  when: ora_autostart|bool
+
+- name: Start Oracle Database Instance
+  systemd:
+    name: oradb-{{ ora_db_sid|lower }}.service
+    state: started
+  when: ora_autostart|bool

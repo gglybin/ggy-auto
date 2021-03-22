@@ -1,0 +1,15 @@
+---
+- name: Oracle Database Installation
+  hosts: db_ora_install
+  become: yes
+  vars_files:
+    - "/etc/ansible/playbooks/oracle_install/vars.yml"
+
+  pre_tasks:
+    - name: Check Linux distribution
+      fail:
+        msg: "This playbook supports only RedHat Release 7, 8 family systems, but server os family is {{ ansible_facts['os_family'] }} Release {{ ansible_facts['distribution_major_version'] }}"
+      when: ansible_facts['os_family'] != 'RedHat' or ansible_facts['distribution_major_version'] | int < 7
+
+  roles:
+    - role: ora_install

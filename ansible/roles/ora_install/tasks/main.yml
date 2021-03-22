@@ -1,0 +1,24 @@
+---
+- name: "############## Storage Setup ##############"
+  include_tasks: storage.yml
+  when: is_storage_setup_required|bool
+
+- name: "############## Server Setup ##############"
+  include_tasks: server.yml
+  when: is_server_setup_required|bool
+
+- name: "############## Oracle Software Setup ##############"
+  include_tasks: software.yml
+  when: is_oracle_software_setup_required|bool
+
+- name: "############## Create Oracle Database Instance ##############"
+  include_tasks: create_db.yml
+  when: is_oracle_db_creation_required|bool
+
+- name: "############## Setup RMAN Backups ##############"
+  include_tasks: rman_backup.yml
+  when: is_oracle_rman_backup_setup_required|bool
+
+- name: "############## Setup Cloud Control Agent ##############"
+  include_tasks: cc_agent.yml
+  when: is_cloud_control_agent_setup_required|bool

@@ -1,0 +1,88 @@
+---
+- name: Create directories for script
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  file:
+    path: "{{ item }}"
+    state: directory
+    recurse: yes
+    group: oinstall
+    mode: '0775'
+  with_items:
+    - "/home/{{ os_db_owner }}/dba/scripts"
+    - "/home/{{ os_db_owner }}/dba/logs/rman"
+    - "{{ rman_bkp_location }}/{{ ora_db_sid }}"
+
+- name: Copy scripts to target server
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  template:
+    src: "{{ role_path }}/templates/rman_backup/rman_backup.j2"
+    dest: "/home/{{ os_db_owner }}/dba/scripts/rman_backup.sh"
+    mode: '0775'
+
+- name: Checking if Archive Mode needs to be enabled
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  shell: |
+    export ORACLE_SID={{ ora_db_sid }} &&
+    export ORACLE_HOME={{ oracle_home }} &&
+    export PATH=$ORACLE_HOME:$ORACLE_HOME/bin:$PATH &&
+    sqlplus -s / as sysdba <<EOF
+    set pagesize 0 feedback off verify off heading off echo off;
+    select log_mode from v\$database;
+    exit;
+    EOF
+  register: arch_mode_status
+
+- name: Enable Archive Mode
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  shell: |
+    export ORACLE_SID={{ ora_db_sid }} &&
+    export ORACLE_HOME={{ oracle_home }} &&
+    export PATH=$ORACLE_HOME:$ORACLE_HOME/bin:$PATH &&
+    sqlplus -s / as sysdba <<EOF
+    shu immediate;
+    startup mount;
+    alter database archivelog;
+    alter database open;
+    exit;
+    EOF
+  when: arch_mode_status.stdout == "NOARCHIVELOG"
+
+- name: Set RMAN retention policy to 7 days
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  shell: |
+    export ORACLE_SID={{ ora_db_sid }} &&
+    export ORACLE_HOME={{ oracle_home }} &&
+    export PATH=$ORACLE_HOME:$ORACLE_HOME/bin:$PATH &&
+    echo 'CONFIGURE RETENTION POLICY TO RECOVERY WINDOW OF 7 DAYS;' | rman target /
+
+- name: Schedule RMAN backups in {{ os_db_owner }} user crontab
+  become: yes
+  become_user: "{{ os_db_owner }}"
+  cron:
+    name: "{{ item.name }}"
+    minute: "{{ item.minute }}"
+    hour: "{{ item.hour }}"
+    weekday: "{{ item.weekday }}"
+    job: "{{ item.job }}"
+    state: present
+  with_items:
+    - { name: "RMAN - Hourly Archive Logs backup",
+        minute: "05",
+        hour: "*",
+        weekday: "*",
+        job: "/home/{{ os_db_owner }}/dba/scripts/rman_backup.sh {{ oracle_home }} {{ ora_db_sid }} arch 2 high {{ rman_bkp_location }}/{{ ora_db_sid }}" }
+    - { name: "RMAN - Daily Level 1 Differential backup",
+        minute: "30",
+        hour: "0",
+        weekday: "1-6",
+        job: "/home/{{ os_db_owner }}/dba/scripts/rman_backup.sh {{ oracle_home }} {{ ora_db_sid }} lvl1_dif 2 high {{ rman_bkp_location }}/{{ ora_db_sid }}" }
+    - { name: "RMAN - Weekly Sunday Level 0 backup",
+        minute: "30",
+        hour: "0",
+        weekday: "0",
+        job: "/home/{{ os_db_owner }}/dba/scripts/rman_backup.sh {{ oracle_home }} {{ ora_db_sid }} lvl0 2 high {{ rman_bkp_location }}/{{ ora_db_sid }}" }

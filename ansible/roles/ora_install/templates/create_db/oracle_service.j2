@@ -1,0 +1,19 @@
+[Unit]
+Description=Oracle Database Instance (TEST) Service
+After=syslog.target network.target
+
+[Service]
+LimitMEMLOCK=infinity
+LimitNOFILE=65535
+
+Type=forking
+RemainAfterExit=yes
+User={{ os_db_owner }}
+Group=oinstall
+Restart=no
+
+ExecStart=/bin/bash -c '/usr/bin/oramgmt.sh start {{ ora_db_sid }} {{ oracle_home }} {{ listener_name }}'
+ExecStop=/bin/bash -c '/usr/bin/oramgmt.sh stop {{ ora_db_sid }} {{ oracle_home }} {{ listener_name }}'
+
+[Install]
+WantedBy=multi-user.target
