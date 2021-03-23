@@ -53,7 +53,7 @@ arc_top                    : /arclogs
 # Oracle Database
 #----------------------
 
-ora_autostart              : true
+ora_autostart              : false
 ora_version                : 19                  # Also can be set to 12, but below variables and ORACLE_HOME archive should be changed/prepared accordingly.
 os_db_owner                : oracle
 os_db_owner_pwd            : "welcome123"
