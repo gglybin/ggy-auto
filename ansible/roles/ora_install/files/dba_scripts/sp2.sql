@@ -15,6 +15,7 @@ select
 'INSTANCE_NAME ..........................................: '||(select instance_name from v$instance),
 'INSTANCE_ID ............................................: '||s.inst_id,
 'INSTANCE_STATUS ........................................: '||(select status from v$instance),
+'VERSION ................................................: '||(select version from v$instance),
 'PROGRAM ................................................: '||nvl(s.program,'-'),
 'MODULE .................................................: '||nvl(s.module,'-'),
 'ACTION .................................................: '||nvl(s.action,'-'),
