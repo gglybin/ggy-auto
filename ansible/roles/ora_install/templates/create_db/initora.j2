@@ -3,7 +3,7 @@
 ##
 
 *.db_name='{{ ora_db_name }}'
-*.audit_file_dest='{{ oracle_base }}/admin/{{ ora_db_name|lower }}/adump'
+*.audit_file_dest='{{ oracle_base }}/admin/{{ ora_db_name|lower }}/adump/{{ ora_db_sid }}'
 *.audit_trail='DB'
 {% if ora_version == 19 %}
 *.compatible='19.0.0'
