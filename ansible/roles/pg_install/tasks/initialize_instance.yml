@@ -15,6 +15,19 @@
     dest: "/home/{{ os_pg_owner }}/.psqlrc"
     mode: '0600'
 
+- name: Create PostgreSQL directories and set permissions
+  file:
+    path: "{{ item }}"
+    state: directory
+    recurse: yes
+    owner: "{{ os_pg_owner }}"
+    group: postgres
+    mode: '0775'
+  with_items:
+    - "{{ os_pg_data }}"
+    - "{{ os_pg_logs }}"
+    - "{{ os_pg_tablespaces }}"
+
 - name: Create directories for DBA scripts and logs
   become: yes
   become_user: "{{ os_pg_owner }}"
