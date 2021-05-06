@@ -15,7 +15,7 @@
   include_tasks: initialize_instance.yml
   when: is_postgresql_initdb_required|bool
 
-- name: ############## Create Database ##############"
+- name: "############## Create Database ##############"
   include_tasks: create_db.yml
   when: is_postgresql_db_creation_required|bool
 
