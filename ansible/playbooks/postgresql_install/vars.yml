@@ -45,12 +45,12 @@ db_name                    : "apps_db"
 db_tablespaces             : [apps_ts_data, apps_ts_idx]
 db_schema                  : "apps"
 db_user                    : "apps_usr"
-db_user_pwd                : "AppsDBuserPassw0rd"
+db_user_pwd                : "AppsDBuserPassw0rdTest123456789"
 
 pg_bouncer_port            : "6543"
 
 bkp_dir                    : "/home/postgres/bkp"
 bkp_db_name                : "backup_db"
 bkp_usr                    : "backup_usr"
-bkp_usr_pwd                : "BkpDBuserPassw0rd"
+bkp_usr_pwd                : "BkpDBuserPassw0rdTest123456789"
 bkp_instance_name          : "pg_local"
