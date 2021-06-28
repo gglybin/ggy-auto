@@ -30,7 +30,7 @@ os_pg_tablespaces          : "/pgdata/{{ pg_version }}/ts"
 
 pg_autostart               : true
 pg_version                 : "11"                                # Available options: 9.6, 10, 11, 12, 13
-pg_superuser_pwd           : "DBuserPassw0rd"
+pg_superuser_pwd           : "DBuserPassw0rdTest123456789"
 pg_port                    : "5432"
 pg_timezone                : "Europe/Moscow"
 pg_locale                  : "en_US.UTF-8"
