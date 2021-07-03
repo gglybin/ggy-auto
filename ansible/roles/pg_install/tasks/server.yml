@@ -66,12 +66,21 @@
     name: "{{ item.name }}"
     value: "{{ item.value }}"
   with_items:
-    - { name: vm.swappiness, value: 1}
-    - { name: vm.dirty_background_ratio, value: 1}
-    - { name: vm.dirty_ratio, value: 20}
-    - { name: vm.dirty_expire_centisecs, value: 500}
-    - { name: vm.dirty_writeback_centisecs, value: 100}
+    - { name: kernel.sched_migration_cost_ns, value: 5000000}
+    - { name: kernel.sched_autogroup_enabled, value: 0}
     - { name: kernel.randomize_va_space, value: 0}
+    - { name: kernel.pid_max, value: 4194303}
+    - { name: kernel.core_uses_pid, value: 1}
+    - { name: kernel.numa_balancing, value: 0}
+    - { name: vm.zone_reclaim_mode, value: 0}
+    - { name: vm.dirty_background_bytes, value: 67108864}
+    - { name: vm.dirty_bytes, value: 536870912}
+    - { name: vm.dirty_expire_centisecs, value: 1000}
+    - { name: vm.dirty_writeback_centisecs, value: 100}
+    - { name: vm.overcommit_memory, value: 0} 
+    - { name: vm.overcommit_ratio, value: 50}
+    - { name: vm.min_free_kbytes, value: 102400}
+    - { name: vm.swappiness, value: 1}
     - { name: net.core.netdev_max_backlog, value: 10000}
     - { name: net.core.somaxconn, value: 65535}
     - { name: net.ipv4.tcp_congestion_control, value: htcp}
@@ -81,13 +90,7 @@
     - { name: net.ipv4.tcp_fin_timeout, value: 30}
     - { name: net.core.netdev_budget, value: 900}
     - { name: net.ipv6.conf.all.disable_ipv6, value: 1}
-    - { name: vm.overcommit_ratio, value: 100}
-    - { name: vm.max_map_count, value: 2000000}
     - { name: net.ipv6.conf.lo.disable_ipv6, value: 1}
-    - { name: kernel.pid_max, value: 4194303}
-    - { name: kernel.core_uses_pid, value: 1}
-    - { name: vm.overcommit_memory, value: 1}
-    - { name: vm.zone_reclaim_mode, value: 0}
 
 - name: Enable Huge Pages
   sysctl:

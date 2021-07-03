@@ -21,7 +21,7 @@
   lvol:
     lv: "{{ item.key }}"
     vg: "{{ lvm_volume_group_name }}"
-    size: "{{ item.value.1 }}"
+    size: "{{ item.value.1 }}g"
   with_dict:
     - "{{ lvm_volumes_info }}"
 
@@ -45,5 +45,11 @@
     src: "/dev/{{ lvm_volume_group_name }}/{{ item.key }}"
     fstype: "{{ item.value.2 }}"
     state: mounted
+  with_dict:
+    - "{{ lvm_volumes_info }}"
+
+- name: Create SOS file
+  shell:
+    cmd: "dd if=/dev/zero of={{ item.value.0 }}/sos bs=1M count={{ (item.value.1|int * 1024 * 0.05)|int }} oflag=direct"
   with_dict:
     - "{{ lvm_volumes_info }}"

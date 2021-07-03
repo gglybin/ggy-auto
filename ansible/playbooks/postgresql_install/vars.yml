@@ -20,7 +20,7 @@ device_name                : /dev/sdb
 partition_number           : 1
 lvm_volume_group_name      : pgvg
 lvm_volumes_info:
-  postgres                 : [/pgdata, 20g, xfs]
+  postgres                 : [/pgdata, 20, xfs]                # [Mount point name, Size in GB, File system type]
 
 os_pg_owner                : "postgres"
 os_pg_owner_pwd            : "OSuserPassw0rd"
@@ -29,7 +29,7 @@ os_pg_logs                 : "/pgdata/{{ pg_version }}/logs"
 os_pg_tablespaces          : "/pgdata/{{ pg_version }}/ts"
 
 pg_autostart               : true
-pg_version                 : "11"                                # Available options: 9.6, 10, 11, 12, 13
+pg_version                 : "11"                               # Available options: 9.6, 10, 11, 12, 13
 pg_superuser_pwd           : "DBuserPassw0rdTest123456789"
 pg_port                    : "5432"
 pg_timezone                : "Europe/Moscow"

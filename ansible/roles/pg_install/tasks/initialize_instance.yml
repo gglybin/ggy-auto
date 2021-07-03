@@ -5,7 +5,7 @@
   template:
     src: "pg_env.j2"
     dest: "/home/{{ os_pg_owner }}/.pg.env"
-    mode: '0600'
+    mode: '0700'
 
 - name: Create /home/{{ os_pg_owner }}/.psqlrc file
   become: yes
@@ -13,7 +13,14 @@
   template:
     src: "psqlrc.j2"
     dest: "/home/{{ os_pg_owner }}/.psqlrc"
-    mode: '0600'
+    mode: '0700'
+
+- name: Correct SOS file owner to {{ os_pg_owner }}
+  file:
+    path: "{{ os_pg_data }}/../../sos"
+    owner: "{{ os_pg_owner }}"
+    group: postgres
+    mode: 0700
 
 - name: Create PostgreSQL directories and set permissions
   file:
