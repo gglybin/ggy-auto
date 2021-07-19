@@ -45,7 +45,7 @@
   become: yes
   become_user: "{{ os_pg_owner }}"
   shell: |
-    psql -d {{ db_name }} -c "create schema {{ db_schema }} authorization {{ db_user}};"
+    psql -d {{ db_name }} -c "create schema {{ db_schema }} authorization {{ db_user }};"
 
 - name: Set search_path to schema "{{ db_schema }}" for "{{ db_user }}" user
   become: yes
